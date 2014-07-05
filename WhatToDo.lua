@@ -1,7 +1,7 @@
 --[[
 	TODO: UI for 'finishing' quests.
 ]]
---require "CraftingLib"
+require "CraftingLib"
 require "GameLib"
 require "PlayerPathLib"
 require "os"
@@ -45,8 +45,9 @@ function WhatToDo:PurgeInvalid()
 	for k1, v1 in pairs(self.cfg.dailies) do
 		local newList = {}
 		for _, v2 in ipairs(v1) do
-			if (not v2.Path or v2.Path == self.playerPath) and 			-- Check path requirement.
-				(not v2.Faction or v2.Faction == self.playerFaction)	-- Check faction requirement
+			if (not v2.Path or v2.Path == self.playerPath) and 					-- Check path requirement.
+				(not v2.Faction or v2.Faction == self.playerFaction) and		-- Check faction requirement
+				(not v2.Tradeskill or self.playerTradeskills[v2.Tradeskill]) 	-- Check Tradeskills
 			then
 				table.insert(newList, v2)
 			end
@@ -92,9 +93,19 @@ function WhatToDo:OnEnable()
 	-- Register event for quest completion
 	Apollo.RegisterEventHandler("QuestStateChanged", "OnQuestStateChanged", self)
 
+	-- Register events for switching tradeskills.
+	-- Register events for levelup when adding minLevel support.
+
 	local player = GameLib.GetPlayerUnit()
 	self.playerPath = player:GetPlayerPathType()
 	self.playerFaction = player:GetFaction()
+	self.playerTradeskills = {}
+	for _, tTradeskill in ipairs(CraftingLib.GetKnownTradeskills()) do
+		local tInfo = CraftingLib.GetTradeskillInfo(tTradeskill.eId)
+		if tInfo.bIsActive then
+			self.playerTradeskills[tTradeskill.eId] = true
+		end
+	end
 	self:PurgeInvalid()
 end
 

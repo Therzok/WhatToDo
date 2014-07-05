@@ -1,18 +1,28 @@
 --[[
 	TODO: MinLevel
-	TODO: Professions
 	TODO: Gather remaining quest ID.
 	TODO: Locale
 ]]
 
+require "CraftingLib"
 require "GameLib"
 require "PlayerPathLib"
 
--- Faster typed enums.
+-- Professions
+local Architect = CraftingLib.CodeEnumTradeskill.Architect
+local Armorer = CraftingLib.CodeEnumTradeskill.Armorer
+local Outfitter = CraftingLib.CodeEnumTradeskill.Outfitter
+local Tailor = CraftingLib.CodeEnumTradeskill.Tailor
+local Technologist = CraftingLib.CodeEnumTradeskill.Augmentor
+local Weaponsmith = CraftingLib.CodeEnumTradeskill.Weaponsmith
+
+-- Paths
 local Explorer = PlayerPathLib.PlayerPathType_Explorer
 local Scientist = PlayerPathLib.PlayerPathType_Scientist
 local Settler = PlayerPathLib.PlayerPathType_Settler
 local Soldier = PlayerPathLib.PlayerPathType_Soldier
+
+-- Factions
 local Dominion = Unit.CodeEnumFaction.DominionPlayer
 local Exiles = Unit.CodeEnumFaction.ExilesPlayer
 
@@ -60,10 +70,23 @@ WTD.QuestData = {
 		{ IdD = 7075, IdE = 7076, Name = "They'll thank You Later" },
 		{ IdD = 7077, IdE = 7078, Name = "Eldan Eradication" },
 		{ IdD = 7072, IdE = 7074, Name = "A New God" },
+	},
+	["Ilium"] = {
+		{ IdD = 9610, IdE = -1, Name = "Torine Tools", Tradeskill = Weaponsmith, Faction = Dominion },
+		{ IdD = 9604, IdE = -1, Name = "Pellskinner Blues", Tradeskill = Outfitter, Faction = Dominion },
+		{ IdD = 9606, IdE = -1, Name = "Loppstitch Made Easy", Tradeskill = Tailor, Faction = Dominion },
+		{ IdD = 9608, IdE = -1, Name = "Techno Toys", Tradeskill = Technologist, Faction = Dominion },
+		{ IdD = 9598, IdE = -1, Name = "Style Eye for the Clone Guy", Tradeskill = Architect, Faction = Dominion },
+		{ IdD = 9600, IdE = -1, Name = "Dead Man's Vest", Tradeskill = Armorer, Faction = Dominion },
+	},
+	["Thayd"] = {
+		{ IdD = -1, IdE = 9611, Name = "Torine Tools", Tradeskill = Weaponsmith, Faction = Exiles },
+		{ IdD = -1, IdE = 9605, Name = "Pellskinner Blues", Tradeskill = Outfitter, Faction = Exiles },
+		{ IdD = -1, IdE = 9607, Name = "Loppstitch Made Easy", Tradeskill = Tailor, Faction = Exiles },
+		{ IdD = -1, IdE = 9609, Name = "Techno Toys", Tradeskill = Technologist, Faction = Exiles },
+		{ IdD = -1, IdE = 9599, Name = "Style Eye for the Clone Guy", Tradeskill = Architect, Faction = Exiles },
+		{ IdD = -1, IdE = 9601, Name = "Dead Man's Vest", Tradeskill = Armorer, Faction = Exiles },
 	}
---[[["Outfitter"] = {
-		[] = { IdD = 9604, IdE = 9605 Name = "Pellskinner Blues", Profession = CraftingLib.CodeEnumTradeskill.Outfitter }
-	}]]
 }
 
-WTD.QuestDataVersion = 1
+WTD.QuestDataVersion = 2
