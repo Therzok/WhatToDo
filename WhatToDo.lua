@@ -98,6 +98,10 @@ function WhatToDo:OnEnable()
 	self:PurgeInvalid()
 end
 
+function WhatToDo:OnDisable()
+	Apollo.RemoveEventHandler("QuestStateChanged", self)
+end
+
 -- Track quest completion.
 function WhatToDo:OnQuestStateChanged(queUpdated, eState)
 	if eState == Quest.QuestState_Accepted then
