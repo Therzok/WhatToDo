@@ -41,13 +41,22 @@ function WhatToDo:ResetDailies()
 end
 
 function WhatToDo:PurgeInvalid()
+	local player = GameLib.GetPlayerUnit()
+	local playerPath = player:GetPlayerPathType()
+	local playerFaction = player:GetFaction()
+	local playerTradeskills = {}
+	for _, tTradeskill in ipairs(CraftingLib.GetKnownTradeskills()) do
+		local tInfo = CraftingLib.GetTradeskillInfo(tTradeskill.eId)
+		playerTradeskills[tTradeskill.eId] = tInfo.bIsActive
+	end
+
 	local newDailies = {}
 	for k1, v1 in pairs(self.cfg.dailies) do
 		local newList = {}
 		for _, v2 in ipairs(v1) do
-			if (not v2.Path or v2.Path == self.playerPath) and 					-- Check path requirement.
-				(not v2.Faction or v2.Faction == self.playerFaction) and		-- Check faction requirement
-				(not v2.Tradeskill or self.playerTradeskills[v2.Tradeskill]) 	-- Check Tradeskills
+			if (not v2.Path or v2.Path == playerPath) and 				-- Check path requirement.
+				(not v2.Faction or v2.Faction == playerFaction) and		-- Check faction requirement.
+				(not v2.Tradeskill or playerTradeskills[v2.Tradeskill]) -- Check tradeskills.
 			then
 				table.insert(newList, v2)
 			end
@@ -93,20 +102,8 @@ function WhatToDo:OnEnable()
 	-- Register event for quest completion
 	Apollo.RegisterEventHandler("QuestStateChanged", "OnQuestStateChanged", self)
 
-	-- Register events for switching tradeskills.
+	-- Fix tradeskills changing quests. TradeskillLearnedFromTHOR
 	-- Register events for levelup when adding minLevel support.
-
-	local player = GameLib.GetPlayerUnit()
-	self.playerPath = player:GetPlayerPathType()
-	self.playerFaction = player:GetFaction()
-	self.playerTradeskills = {}
-	for _, tTradeskill in ipairs(CraftingLib.GetKnownTradeskills()) do
-		local tInfo = CraftingLib.GetTradeskillInfo(tTradeskill.eId)
-		if tInfo.bIsActive then
-			self.playerTradeskills[tTradeskill.eId] = true
-		end
-	end
-	self:PurgeInvalid()
 end
 
 function WhatToDo:OnDisable()

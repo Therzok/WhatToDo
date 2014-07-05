@@ -89,4 +89,4 @@ WTD.QuestData = {
 	}
 }
 
-WTD.QuestDataVersion = 2
+WTD.QuestDataVersion = 1
