@@ -5,6 +5,7 @@
 	TODO: Locale
 ]]
 
+require "GameLib"
 require "PlayerPathLib"
 
 -- Faster typed enums.
@@ -12,8 +13,10 @@ local Explorer = PlayerPathLib.PlayerPathType_Explorer
 local Scientist = PlayerPathLib.PlayerPathType_Scientist
 local Settler = PlayerPathLib.PlayerPathType_Settler
 local Soldier = PlayerPathLib.PlayerPathType_Soldier
+local Dominion = Unit.CodeEnumFaction.DominionPlayer
+local Exiles = Unit.CodeEnumFaction.ExilesPlayer
 
-local WTD = Apollo.GetAddon("WhatToDo")
+local WTD = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:GetAddon("WhatToDo")
 WTD.QuestData = {
 	-- Reputation dailies
 	["Crimson Badlands"] = {
@@ -31,9 +34,12 @@ WTD.QuestData = {
 		{ IdD = 7467, IdE = 7463, Name = "Guarding the Front" },
 		{ IdD = 7446, IdE = 7447, Name = "BBQ Blast" },
 		{ IdD = 7458, IdE = 7455, Name = "Burning Waters" },
+		
 		-- Different Quests
-		{ IdD = 7496, IdE = 7486, Name = "D: Reclaim the Power -- E: Equipment Under Siege" },
-		{ IdD = 7498, IdE = 7488, Name = "D: Missing Technologies -- E: Electrical Disturbance" },
+		{ IdD = 7496, IdE = -1, Name = "Reclaim the Power", Faction = Dominion },
+		{ IdD = 7498, IdE = -1, Name = "Missing Technologies", Faction = Dominion },
+		{ IdD = -1, IdE = 7486, Name = "Equipment Under Siege", Faction = Exiles },
+		{ IdD = -1, IdE = 7488, Name = "Electrical Disturbance", Faction = Exiles },
 	},
 	["Northern Wastes"] = {
 		{ IdD = 7105, IdE = 7104, Name = "OPERATIONS: Maintaining Communications", Path = Explorer },
@@ -59,3 +65,5 @@ WTD.QuestData = {
 		[] = { IdD = 9604, IdE = 9605 Name = "Pellskinner Blues", Profession = CraftingLib.CodeEnumTradeskill.Outfitter }
 	}]]
 }
+
+WTD.QuestDataVersion = 1

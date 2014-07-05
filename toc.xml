@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Addon Author="Thezok" APIVersion="8" Name="WhatToDo" Description="Currently keeps track of dailies you can do for reputation." Version="0.1">
     <!-- Libraries -->
+    <Script Name="libs\GeminiAddon-1.1\GeminiAddon.lua"/>
     <Script Name="libs\GeminiGUI-1.0\GeminiGUI.lua"/>
     <!-- AddOn -->
     <Script Name="WhatToDo.lua"/>

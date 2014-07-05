@@ -9,7 +9,7 @@ require "table"
 
 local Debug
 
-local WhatToDo = {}
+local WhatToDo = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon("WhatToDo", false, {})
 local GeminiGUI
 
 local function clone(t) -- deep-copy a table
@@ -35,16 +35,19 @@ end
 function WhatToDo:ResetDailies()
 	self.cfg = {
 		dailies = clone(self.QuestData),
-		last = lastReset()
+		last = lastReset(),
+		version = self.QuestDataVersion
 	}
 end
 
-function WhatToDo:KeepWithRequirements()
+function WhatToDo:PurgeInvalid()
 	local newDailies = {}
 	for k1, v1 in pairs(self.cfg.dailies) do
 		local newList = {}
 		for _, v2 in ipairs(v1) do
-			if not v2.Path or v2.Path == self.playerPath then
+			if (not v2.Path or v2.Path == self.playerPath) and 			-- Check path requirement.
+				(not v2.Faction or v2.Faction == self.playerFaction)	-- Check faction requirement
+			then
 				table.insert(newList, v2)
 			end
 		end
@@ -55,16 +58,16 @@ function WhatToDo:KeepWithRequirements()
 	self.cfg.dailies = newDailies
 end
 
-function WhatToDo:new(o)
-	o = o or {}
-	setmetatable(o, self)
-	self.__index = self
-	return o
-end
+function WhatToDo:OnInitialize()
+	-- Get dependency packages.
+	GeminiGUI = Apollo.GetPackage("Gemini:GUI-1.0").tPackage
 
-function WhatToDo:Init()
-	Apollo.RegisterAddon(self, false, "", {"Gemini:GUI-1.0"})
-	self.cfg = {}
+	-- Register slash.
+	Apollo.RegisterSlashCommand("wtd", "OnWhatToDoOn", self)
+	Apollo.RegisterSlashCommand("whattodo", "OnWhatToDoOn", self)
+	Apollo.RegisterSlashCommand("wtdf", "OnWhatToDoFinish", self)
+	
+	self:ResetDailies()
 end
 
 function WhatToDo:OnSave(eLevel)
@@ -78,26 +81,21 @@ function WhatToDo:OnRestore(eLevel, tData)
 	self.cfg = clone(tData)
 
 	-- Test if we're over a daily cycle since last login.
-	if self.cfg.last ~= lastReset() then
+	if self.cfg.last ~= lastReset() or self.cfg.version ~= self.QuestDataVersion then
 		self:ResetDailies()
 	end
-
-	self:KeepWithRequirements()
+	
+	self:PurgeInvalid()
 end
 
-function WhatToDo:OnLoad()
-	-- Get dependency packages.
-	GeminiGUI = Apollo.GetPackage("Gemini:GUI-1.0").tPackage
-
-	-- Register slash.
-	Apollo.RegisterSlashCommand("wtd", "OnWhatToDoOn", self)
-	Apollo.RegisterSlashCommand("whattodo", "OnWhatToDoOn", self)
-	Apollo.RegisterSlashCommand("wtdf", "OnWhatToDoFinish", self)
-
+function WhatToDo:OnEnable()
 	-- Register event for quest completion
 	Apollo.RegisterEventHandler("QuestStateChanged", "OnQuestStateChanged", self)
 
-	self.playerPath = PlayerPathLib.GetPlayerPathType()
+	local player = GameLib.GetPlayerUnit()
+	self.playerPath = player:GetPlayerPathType()
+	self.playerFaction = player:GetFaction()
+	self:PurgeInvalid()
 end
 
 -- Track quest completion.
@@ -233,6 +231,3 @@ function WhatToDo:OnWhatToDoOn()
 	self.wndMain = GeminiGUI:Create(tWndDefinition):GetInstance(self)
 	self:RedrawTree()
 end
-
-local WhatToDoInst = WhatToDo:new()
-WhatToDo:Init()
