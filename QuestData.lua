@@ -178,5 +178,3 @@ WTD.QuestTradeskillExtensions = {
 	[9598] = Architect, 	[9599] = Architect,		-- "Style Eye for the Clone Guy"
 	[9600] = Armorer, 		[9601] = Armorer,		-- "Dead Man's Vest"
 }
-
-WTD.QuestDataVersion = 3

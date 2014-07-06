@@ -25,6 +25,7 @@ local GeminiConfigDialog
 local WhatToDo = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon("WhatToDo", false, {"Gemini:GUI-1.0", "Gemini:Config-1.0", "Gemini:ConfigDialog-1.0"})
 
 -- Configuration settings.
+local ConfigVersion = 1
 local defaultOptions = {
 	cShowUndiscovered	= false,
 	cShowVouchers		= true,
@@ -158,6 +159,7 @@ end
 function WhatToDo:ResetDailies()
 	self.cfg.last = lastReset()
 	self.cfg.finished = {}
+	self.cfg.ver = ConfigVersion
 end
 
 function WhatToDo:OnInitialize()
@@ -173,7 +175,7 @@ function WhatToDo:OnInitialize()
 	Apollo.RegisterSlashCommand("wtdc", "OnWhatToDoConfig", self)
 
 	-- Set initial values.
-	self.cfg = { finished = {}, options = defaultOptions }
+	self.cfg = { finished = {}, options = defaultOptions, ver = ConfigVersion }
 	self.dailiesKnown = {}
 
 	-- Register configuration,
@@ -191,8 +193,8 @@ function WhatToDo:OnRestore(eLevel, tData)
 
 	self.cfg = clone(tData)
 
-	-- Test if we're over a daily cycle since last login.
-	if self.cfg.last ~= lastReset() then
+	-- Test if we're over a daily cycle since last login or config version changed.
+	if self.cfg.last ~= lastReset() or self.cfg.ver ~= ConfigVersion then
 		self:ResetDailies()
 	end
 end
