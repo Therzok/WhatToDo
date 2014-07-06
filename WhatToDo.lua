@@ -172,8 +172,8 @@ function WhatToDo:OnInitialize()
 	GeminiConfigDialog = Apollo.GetPackage("Gemini:ConfigDialog-1.0").tPackage
 
 	-- Register slash.
-	Apollo.RegisterSlashCommand("wtd", "OnWhatToDoOn", self)
-	Apollo.RegisterSlashCommand("whattodo", "OnWhatToDoOn", self)
+	Apollo.RegisterSlashCommand("wtd", "OnWhatToDoToggle", self)
+	Apollo.RegisterSlashCommand("whattodo", "OnWhatToDoToggle", self)
 	Apollo.RegisterSlashCommand("wtdf", "OnWhatToDoFinish", self)
 	Apollo.RegisterSlashCommand("wtdc", "OnWhatToDoConfig", self)
 
@@ -208,8 +208,12 @@ function WhatToDo:OnRestore(eLevel, tData)
 end
 
 function WhatToDo:OnEnable()
-	-- Register event for quest completion
+	-- Register event for quest completion.
 	Apollo.RegisterEventHandler("QuestStateChanged", "OnQuestStateChanged", self)
+
+	-- Register event for menu handling.
+	Apollo.RegisterEventHandler("InterfaceMenuListHasLoaded", "OnInterfaceMenuListHasLoaded", self)
+	Apollo.RegisterEventHandler("WhatToDoMenuClicked", "OnWhatToDoToggle", self)
 
 	-- Fix tradeskills changing quests. TradeskillLearnedFromTHOR
 	-- Register events for levelup when adding minLevel support.
@@ -219,6 +223,7 @@ end
 
 function WhatToDo:OnDisable()
 	Apollo.RemoveEventHandler("QuestStateChanged", self)
+	Apollo.RemoveEventHandler("InterfaceMenuListHasLoaded", self)
 end
 
 -- Track quest completion.
@@ -231,6 +236,11 @@ function WhatToDo:OnQuestStateChanged(queUpdated, eState)
 		store = true
 	end
 	if store then storeRelevant(self, queUpdated) end
+end
+
+-- Add menu item.
+function WhatToDo:OnInterfaceMenuListHasLoaded()
+	Event_FireGenericEvent("InterfaceMenuList_NewAddOn", "WhatToDo", { "WhatToDoMenuClicked", "", "Icon_Windows32_UI_CRB_InterfaceMenu_SupportTicket" })
 end
 
 -- Add the quest to the dailies finished list.
@@ -415,8 +425,12 @@ function WhatToDo:OnWhatToDoFinish(strCmd, strArg)
 end
 
 -- on SlashCommand "/wtd"
-function WhatToDo:OnWhatToDoOn()
-	if self.wndMain then return end
+function WhatToDo:OnWhatToDoToggle()
+	if self.wndMain then
+		self.wndMain:Close()
+		self.wndMain = nil
+		return
+	end
 
 	local tWndDefinition = {
 		Name			= "WhatToDoWindow",
