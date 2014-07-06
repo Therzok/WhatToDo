@@ -443,7 +443,7 @@ function WhatToDo:OnWhatToDoToggle()
 		Picture			= false,
 		Moveable		= true,
 		Border			= true,
-		AnchorCenter	= {500, 460},
+		AnchorCenter	= {450, 460},
 		Escapable		= true,
 
 		Pixies = {
