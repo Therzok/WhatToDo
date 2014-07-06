@@ -25,6 +25,7 @@ local GeminiConfigDialog
 local WhatToDo = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon("WhatToDo", false, {"Gemini:GUI-1.0", "Gemini:Config-1.0", "Gemini:ConfigDialog-1.0"})
 
 -- Configuration settings.
+local hasDug
 local ConfigVersion = 1
 local defaultOptions = {
 	cShowUndiscovered	= false,
@@ -126,6 +127,8 @@ end
 
 -- Called when loading. No magic that makes quests appear except accept.
 function WhatToDo:DigQuests()
+	if hasDug then return end
+	hasDug = true
 	for _, qcCategory in pairs(QuestLib.GetKnownCategories()) do
 		if qcCategory:GetId() == QuestDaily or qcCategory:GetId() == QuestTradeskill then
 			for _, epiEpisode in pairs(qcCategory:GetEpisodes()) do
@@ -194,7 +197,13 @@ function WhatToDo:OnRestore(eLevel, tData)
 	self.cfg = clone(tData)
 
 	-- Test if we're over a daily cycle since last login or config version changed.
-	if self.cfg.last ~= lastReset() or self.cfg.ver ~= ConfigVersion then
+	local reset = self.cfg.last ~= lastReset()
+	if self.cfg.ver ~= ConfigVersion then
+		reset = true
+		self.cfg.options = defaultOptions
+	end
+
+	if reset then
 		self:ResetDailies()
 	end
 end
