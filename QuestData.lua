@@ -44,7 +44,7 @@ WTD.QuestsKnown = {
 		{ IdD = 7467, IdE = 7463, Name = "Guarding the Front" },
 		{ IdD = 7446, IdE = 7447, Name = "BBQ Blast" },
 		{ IdD = 7458, IdE = 7455, Name = "Burning Waters" },
-		
+
 		-- Different Quests
 		{ IdD = 7496, IdE = 7496, Name = "Reclaim the Power" },
 		{ IdD = 7498, IdE = 7498, Name = "Missing Technologies" },

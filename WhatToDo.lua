@@ -22,14 +22,14 @@ local maxRep
 local GeminiGUI
 local GeminiConfig
 local GeminiConfigDialog
-local WhatToDo = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon("WhatToDo", false, {})
+local WhatToDo = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon("WhatToDo", false, {"Gemini:GUI-1.0", "Gemini:Config-1.0", "Gemini:ConfigDialog-1.0"})
 
 -- Configuration settings.
 local defaultOptions = {
 	cShowUndiscovered	= false,
 	cShowVouchers		= true,
 	cShowMaxRep			= true,
-	cShowIds			= true,
+	cShowIds			= false,
 	cShowWhitelistOnly	= false,-- TODO: Need more quests.
 	cShowForYourLevel	= true	-- TODO
 }
@@ -77,7 +77,7 @@ end
 
 local function getMaxRep()
 	if maxRep then return maxRep end
-	
+
 	maxRep = 0
 	for _, v in pairs(GameLib.GetReputationLevels()) do
 		maxRep = math.max(maxRep, v.nMax)
@@ -87,7 +87,7 @@ end
 local function createTableItem(self, category, iId, strTitle, extra)
 	if not self.dailiesKnown[category] then self.dailiesKnown[category] = {} end
 	if not extra.GameData and self.dailiesKnown[category][iId] then return end
-	
+
 	self.dailiesKnown[category][iId] = {
 		Name = strTitle,
 		Path = self.QuestPathExtensions[iId],
@@ -102,7 +102,7 @@ local function storeRelevant(self, v)
 	for _, rew in pairs(v:GetRewardData().arFixedRewards) do
 		local category
 		local extra = { GameData = true }
-		
+
 		if rew.eType == Quest.Quest2RewardType_Reputation then -- Reputation
 			category = rew.strFactionName
 			extra.Reputation = true
@@ -116,6 +116,7 @@ local function storeRelevant(self, v)
 		end
 
 		if category then
+			extra.Quest = v
 			createTableItem(self, category, v:GetId(), v:GetTitle(), extra)
 			return
 		end
@@ -135,7 +136,7 @@ function WhatToDo:DigQuests()
 			end
 		end
 	end
-	
+
 	-- Add undiscovered quests
 	local player = GameLib.GetPlayerUnit()
 	local playerFaction = player:GetFaction()
@@ -170,8 +171,8 @@ function WhatToDo:OnInitialize()
 	Apollo.RegisterSlashCommand("whattodo", "OnWhatToDoOn", self)
 	Apollo.RegisterSlashCommand("wtdf", "OnWhatToDoFinish", self)
 	Apollo.RegisterSlashCommand("wtdc", "OnWhatToDoConfig", self)
-	
-	-- Set initial values.	
+
+	-- Set initial values.
 	self.cfg = { finished = {}, options = defaultOptions }
 	self.dailiesKnown = {}
 
@@ -202,7 +203,7 @@ function WhatToDo:OnEnable()
 
 	-- Fix tradeskills changing quests. TradeskillLearnedFromTHOR
 	-- Register events for levelup when adding minLevel support.
-	
+
 	self:DigQuests()
 end
 
@@ -219,7 +220,7 @@ function WhatToDo:OnQuestStateChanged(queUpdated, eState)
 		self:FinishQuest(queUpdated:GetId())
 		store = true
 	end
-	if store then storeRelevant(queUpdated) end
+	if store then storeRelevant(self, queUpdated) end
 end
 
 -- Add the quest to the dailies finished list.
@@ -240,7 +241,7 @@ end
 function WhatToDo:GetDisplayTable()
 	self:DigQuests()
 	local toDisplay = {}
-	
+
 	-- Check tradeskills in showing.
 	local playerTradeskills = {}
 	for _, tTradeskill in ipairs(CraftingLib.GetKnownTradeskills()) do
@@ -273,6 +274,76 @@ local function formatTitle(self, iId, strTitle, extra)
 		(self.cfg.options.cShowIds and " [" .. iId .. "]" or "")-- Show IDs.
 end
 
+local function questLogOverride(self, queTarget)
+	if not queTarget then
+		return
+	end
+
+	self.wndLeftFilterActive:SetCheck(false)
+	self.wndLeftFilterHidden:SetCheck(false)
+	self.wndLeftFilterFinished:SetCheck(true)
+	self.wndLeftSideScroll:DestroyChildren()
+
+	local qcTop = queTarget:GetCategory()
+	local epiMid = queTarget:GetEpisode()
+
+	self:RedrawLeftTree() -- Add categories
+
+	if queTarget:GetState() == Quest.QuestState_Unknown then
+		self.wndQuestInfoControls:Show(false)
+
+		self:DrawUnknownRightSide(queTarget)
+		self:ResizeRight()
+		self:ResizeTree()
+		return
+	end
+
+	local strCategoryKey
+	local strEpisodeKey
+	local strQuestKey
+
+	if epiMid then
+		if epiMid:IsWorldStory() then
+			strCategoryKey = "CWorldStory"
+			strEpisodeKey = strCategoryKey.."E"..epiMid:GetId()
+			strQuestKey = strEpisodeKey.."Q"..queTarget:GetId()
+		elseif epiMid:IsZoneStory() or epiMid:IsRegionalStory() then
+			strCategoryKey = "C"..qcTop:GetId()
+			strEpisodeKey = strCategoryKey.."E"..epiMid:GetId()
+			strQuestKey = strEpisodeKey.."Q"..queTarget:GetId()
+		else
+			strCategoryKey = "C"..qcTop:GetId()
+			strEpisodeKey = strCategoryKey.."ETasks"
+			strQuestKey = strEpisodeKey.."Q"..queTarget:GetId()
+		end
+	end
+
+	if qcTop then
+		local wndTop = self.arLeftTreeMap[strCategoryKey]
+		if wndTop then
+			wndTop:FindChild("TopLevelBtn"):SetCheck(true)
+			self:RedrawLeftTree() -- Add episodes
+
+			if epiMid then
+				local wndMiddle = self.arLeftTreeMap[strEpisodeKey]
+				if wndMiddle then
+					wndMiddle:FindChild("MiddleLevelBtn"):SetCheck(true)
+					self:RedrawLeftTree() -- Add quests
+
+					local wndBot = self.arLeftTreeMap[strQuestKey]
+					if wndBot then
+						wndBot:FindChild("BottomLevelBtn"):SetCheck(true)
+						self:OnBottomLevelBtnCheck(wndBot:FindChild("BottomLevelBtn"), wndBot:FindChild("BottomLevelBtn"))
+					end
+				end
+			end
+		end
+	end
+
+	self:ResizeTree()
+	self:RedrawRight()
+end
+
 -- Tree with items construction.
 function WhatToDo:CreateTree()
 	return { -- Tree Control
@@ -284,18 +355,35 @@ function WhatToDo:CreateTree()
 			WindowLoad = function(self, wndHandler, wndControl)
 				local items = false
 				local toDisplay = self:GetDisplayTable()
-				
+
 				for k, v in pairs(toDisplay) do
 					items = true
 
 					local hParent = 0
 					hParent = wndControl:AddNode(hParent, k)
 					for k2, v2 in pairs(v) do
-						wndControl:AddNode(hParent, formatTitle(self, v2.Id, v2.Name, v2.Extra))
+						wndControl:AddNode(hParent, formatTitle(self, v2.Id, v2.Name, v2.Extra), nil, v2.Extra.Quest)
 					end
 				end
 				if not items then
 					wndControl:AddNode(0, "You've already done everything today. Congratulations.")
+				end
+			end,
+			TreeDoubleClick = function(self, wndHandler, wndControl, hNode)
+				local quest = wndControl:GetNodeData(hNode)
+				if not quest then return end
+
+				local qlog = Apollo.GetAddon("QuestLog")
+				local old = qlog.OnGenericEvent_ShowQuestLog
+				if not quest:IsInLog() then -- hook it
+					qlog.OnGenericEvent_ShowQuestLog = questLogOverride
+				end
+
+				Event_FireGenericEvent("ShowQuestLog", "WhatToDo")
+				Event_FireGenericEvent("GenericEvent_ShowQuestLog", quest)
+
+				if not quest:IsInLog() then -- unhook it
+					qlog.OnGenericEvent_ShowQuestLog = old
 				end
 			end
 		}
@@ -305,7 +393,7 @@ end
 -- Redraws the tree.
 function WhatToDo:RedrawTree()
 	if not self.wndMain then return end
-	
+
 	local container = self.wndMain:FindChild("QuestWidgetContainer")
 	container:DestroyChildren()
 	GeminiGUI:Create(self:CreateTree()):GetInstance(self, container)
