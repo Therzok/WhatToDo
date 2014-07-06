@@ -196,14 +196,13 @@ function WhatToDo:OnRestore(eLevel, tData)
 
 	self.cfg = clone(tData)
 
-	-- Test if we're over a daily cycle since last login or config version changed.
-	local reset = self.cfg.last ~= lastReset()
-	if self.cfg.ver ~= ConfigVersion then
-		reset = true
+	-- Check if options exist.
+	if not self.cfg.options then
 		self.cfg.options = defaultOptions
 	end
 
-	if reset then
+	-- Test if we're over a daily cycle since last login.
+	if self.cfg.last ~= lastReset() then
 		self:ResetDailies()
 	end
 end
