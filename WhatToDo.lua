@@ -3,7 +3,9 @@
 ]]
 require "CraftingLib"
 require "GameLib"
+require "Money"
 require "PlayerPathLib"
+require "Quest"
 require "os"
 require "table"
 
@@ -11,6 +13,15 @@ local Debug
 
 local WhatToDo = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon("WhatToDo", false, {})
 local GeminiGUI
+
+local QuestDaily = 63
+local QuestTradeskill = 53
+
+local QuestDailyPath = 12
+
+local cOnlyDiscovered
+local cVouchers
+local cNoRepWhenMax
 
 local function clone(t) -- deep-copy a table
 	if type(t) ~= "table" then return t end
@@ -34,10 +45,54 @@ end
 
 function WhatToDo:ResetDailies()
 	self.cfg = {
-		dailies = clone(self.QuestData),
 		last = lastReset(),
 		version = self.QuestDataVersion
 	}
+	self:DigQuests()
+end
+
+function WhatToDo:DigQuests()
+	self.cfg.dailies = {}
+	
+	local function createTableItem(category, queQuest)
+		if not self.cfg.dailies[category] then self.cfg.dailies[category] = {} end
+		local iId = queQuest:GetId()
+		self.cfg.dailies[category][iId] = {
+			Name = (not self.QuestWhitelist[iId] and "[NEW] " or "") .. (self.QuestZoneExtensions[iId] or "") .. queQuest:GetTitle(),
+			Path = self.QuestPathExtensions[iId],
+			Tradeskill = self.QuestTradeskillExtensions[iId],
+			Whitelisted = self.QuestWhitelist[iId],
+			Id = iId
+		}
+	end
+	
+	local function storeRelevant(v)
+		for _, rew in pairs(v:GetRewardData().arFixedRewards) do
+			local category
+			if rew.eType == Quest.Quest2RewardType_Reputation then -- Reputation
+				category = rew.strFactionName
+			elseif rew.eType == Quest.Quest2RewardType_Money and rew.eCurrencyType == Money.CodeEnumCurrencyType.CraftingVouchers and
+					v:GetType() == 5 and v:GetSubType() ~= 0 then -- Crafting Vouchers
+				category = "Tradeskills - Crafting Vouchers" 
+			elseif rew.eType == Quest.Quest2RewardType_Item and rew.itemReward:GetItemId() == 28282 and
+					v:GetType() == 5 and v:GetSubType() ~= 0 then -- Daily Data Ration
+				category = "Tradeskills - Daily Data Ration"
+			end
+			if category then createTableItem(category, v) end
+		end
+	end
+	
+	for _, qcCategory in pairs(QuestLib.GetKnownCategories()) do
+		if qcCategory:GetId() == QuestDaily or qcCategory:GetId() == QuestTradeskill then
+			for _, epiEpisode in pairs(qcCategory:GetEpisodes()) do
+				if not epiEpisode:IsWorldStory() and not epiEpisode:IsZoneStory() and not epiEpisode:IsRegionalStory() then
+					for _, queQuest in pairs(epiEpisode:GetAllQuests(qcCategory:GetId())) do
+						storeRelevant(queQuest)
+					end
+				end
+			end
+		end
+	end
 end
 
 function WhatToDo:PurgeInvalid()
@@ -53,7 +108,7 @@ function WhatToDo:PurgeInvalid()
 	local newDailies = {}
 	for k1, v1 in pairs(self.cfg.dailies) do
 		local newList = {}
-		for _, v2 in ipairs(v1) do
+		for _, v2 in pairs(v1) do
 			if (not v2.Path or v2.Path == playerPath) and 				-- Check path requirement.
 				(not v2.Faction or v2.Faction == playerFaction) and		-- Check faction requirement.
 				(not v2.Tradeskill or playerTradeskills[v2.Tradeskill]) -- Check tradeskills.
@@ -76,8 +131,8 @@ function WhatToDo:OnInitialize()
 	Apollo.RegisterSlashCommand("wtd", "OnWhatToDoOn", self)
 	Apollo.RegisterSlashCommand("whattodo", "OnWhatToDoOn", self)
 	Apollo.RegisterSlashCommand("wtdf", "OnWhatToDoFinish", self)
-	
-	self:ResetDailies()
+
+	self.cfg = {}
 end
 
 function WhatToDo:OnSave(eLevel)
@@ -94,8 +149,6 @@ function WhatToDo:OnRestore(eLevel, tData)
 	if self.cfg.last ~= lastReset() or self.cfg.version ~= self.QuestDataVersion then
 		self:ResetDailies()
 	end
-	
-	self:PurgeInvalid()
 end
 
 function WhatToDo:OnEnable()
@@ -104,6 +157,8 @@ function WhatToDo:OnEnable()
 
 	-- Fix tradeskills changing quests. TradeskillLearnedFromTHOR
 	-- Register events for levelup when adding minLevel support.
+	
+	self:PurgeInvalid()
 end
 
 function WhatToDo:OnDisable()
@@ -124,8 +179,8 @@ end
 function WhatToDo:FinishQuest(iQuestId)
 	local zone, index
 	for k1, v1 in pairs(self.cfg.dailies) do
-		for k2, v2 in ipairs(v1) do
-			if v2.IdD == iQuestId or v2.IdE == iQuestId then
+		for k2, v2 in pairs(v1) do
+			if v2.Id == iQuestId then
 				zone, index = k1, k2
 				break
 			end
@@ -157,8 +212,8 @@ local function CreateTree()
 
 					local hParent = 0
 					hParent = wndControl:AddNode(hParent, k)
-					for _, v2 in ipairs(v) do
-						local displayName = Debug and v2.Name .. " [" .. v2.IdD .. "," .. v2.IdE .."]" or v2.Name
+					for k2, v2 in pairs(v) do
+						local displayName = Debug and v2.Name .. " [" .. v2.Id .. "]" or v2.Name
 						wndControl:AddNode(hParent, displayName)
 					end
 				end
