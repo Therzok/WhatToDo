@@ -17,20 +17,42 @@ local Debug
 local QuestDaily = 63
 local QuestTradeskill = 53
 
--- Configuration settings.
-local cShowUndiscovered	= true
-local cShowVouchers		= true
-local cShowMaxRep		= true
-local cShowIds			= true
-local cShowWhitelistOnly= true
-
--- TODO
-local cShowForYourLevel = true
-
 -- Cached variables.
 local maxRep
 local GeminiGUI
+local GeminiConfig
+local GeminiConfigDialog
 local WhatToDo = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon("WhatToDo", false, {})
+
+-- Configuration settings.
+local defaultOptions = {
+	cShowUndiscovered	= false,
+	cShowVouchers		= true,
+	cShowMaxRep			= true,
+	cShowIds			= true,
+	cShowWhitelistOnly	= false,-- TODO: Need more quests.
+	cShowForYourLevel	= true	-- TODO
+}
+
+local function createToggle(configName, optName, optDescription)
+	return {
+		name = optName,
+		desc = optDescription,
+		type = "toggle",
+		set = function(info, val) WhatToDo.cfg.options[configName] = val WhatToDo:RedrawTree() end,
+		get = function(val) return WhatToDo.cfg.options[configName] end
+	}
+end
+
+local optionsConfig = {
+	type = "group",
+	args = {
+		undiscovered = createToggle("cShowUndiscovered", "Undiscovered", "Shows quests that haven't been found."),
+		vouchers = createToggle("cShowVouchers", "Crafting Vouchers Quests", "Shows quests which award Crafting Vouchers."),
+		maxrep = createToggle("cShowMaxRep", "Show Max Reputation", "Shows quests which no longer can award Reputation."),
+		showids = createToggle("cShowIds", "Show IDs", "Shows the IDs in the quest list."),
+	},
+}
 
 -- Utils
 local function clone(t) -- deep-copy a table
@@ -133,25 +155,29 @@ function WhatToDo:DigQuests()
 end
 
 function WhatToDo:ResetDailies()
-	self.cfg = {
-		last = lastReset(),
-		finished = {}
-	}
+	self.cfg.last = lastReset()
+	self.cfg.finished = {}
 end
 
 function WhatToDo:OnInitialize()
 	-- Get dependency packages.
 	GeminiGUI = Apollo.GetPackage("Gemini:GUI-1.0").tPackage
+	GeminiConfig = Apollo.GetPackage("Gemini:Config-1.0").tPackage
+	GeminiConfigDialog = Apollo.GetPackage("Gemini:ConfigDialog-1.0").tPackage
 
 	-- Register slash.
 	Apollo.RegisterSlashCommand("wtd", "OnWhatToDoOn", self)
 	Apollo.RegisterSlashCommand("whattodo", "OnWhatToDoOn", self)
 	Apollo.RegisterSlashCommand("wtdf", "OnWhatToDoFinish", self)
-
-	self.cfg = {
-		finished = {}
-	}
+	Apollo.RegisterSlashCommand("wtdc", "OnWhatToDoConfig", self)
+	
+	-- Set initial values.	
+	self.cfg = { finished = {}, options = defaultOptions }
 	self.dailiesKnown = {}
+
+	-- Register configuration,
+	GeminiConfig:RegisterOptionsTable("WhatToDo", optionsConfig)
+	GeminiConfigDialog:SetDefaultSize("WhatToDo", 295, 275)
 end
 
 function WhatToDo:OnSave(eLevel)
@@ -224,12 +250,12 @@ function WhatToDo:GetDisplayTable()
 
 	for category, quests in pairs(self.dailiesKnown) do
 		for _, quest in pairs(quests) do
-			if (cShowUndiscovered or quest.Extra.GameData) and						-- Show Undiscovered based on toggle.
-				(cShowVouchers or not quest.Extra.Vouchers) and						-- Show Vouchers based on toggle.
-				(cShowMaxRep or not repIsMax(category))	and							-- Show Max Reputation based on toggle.
+			if (self.cfg.options.cShowUndiscovered or quest.Extra.GameData) and		-- Show Undiscovered based on toggle.
+				(self.cfg.options.cShowVouchers or not quest.Extra.Vouchers) and	-- Show Vouchers based on toggle.
+				(self.cfg.options.cShowMaxRep or not repIsMax(category)) and		-- Show Max Reputation based on toggle.
 				(not quest.Tradeskill or playerTradeskills[quest.Tradeskill]) and	-- Purge Tradeskills
 				(not self.cfg.finished[quest.Id]) and								-- Purge Finished
-				(not cShowWhitelistOnly or quest.Whitelisted)						-- Show only whitelisted.
+				(not self.cfg.options.cShowWhitelistOnly or quest.Whitelisted)		-- Show only whitelisted.
 			then
 				if not toDisplay[category] then toDisplay[category] = {} end
 				table.insert(toDisplay[category], quest)
@@ -244,7 +270,7 @@ local function formatTitle(self, iId, strTitle, extra)
 		(not self.QuestWhitelist[iId] and "[NEW] " or "") ..	-- GameData quest not in QuestsKnown.
 		(self.QuestZoneExtensions[iId] or "") ..				-- Zone extensions for Tradeskills.
 		strTitle ..												-- Quest title.
-		(cShowIds and " [" .. iId .. "]" or "")					-- Show IDs.
+		(self.cfg.options.cShowIds and " [" .. iId .. "]" or "")-- Show IDs.
 end
 
 -- Tree with items construction.
@@ -331,6 +357,14 @@ function WhatToDo:OnWhatToDoOn()
 				NoClip			= true,
 				Events			= { ButtonSignal = function(_, wndHandler, wndControl) wndControl:GetParent():Close() end, },
 			},
+			{
+				WidgetType		= "PushButton",
+				AnchorPoints	= "TOPRIGHT", -- will be translated to { 1, 0, 1, 0 }
+				AnchorOffsets	= { -17, 17, 3, 37 },
+				Base			= "CRB_Basekit:kitBtn_Metal_Options",
+				NoClip			= true,
+				Events			= { ButtonSignal = function(_, wndHandler, wndControl) self:OnWhatToDoConfig() end, },
+			},
 			{ 
 				Name			= "QuestWidgetContainer", 
 				AnchorPoints	= "FILL", -- will be translated to { 0, 0, 1, 1 }
@@ -349,3 +383,8 @@ function WhatToDo:OnWhatToDoOn()
 	self.wndMain = GeminiGUI:Create(tWndDefinition):GetInstance(self)
 	self:RedrawTree()
 end
+
+function WhatToDo:OnWhatToDoConfig()
+	GeminiConfigDialog:Open("WhatToDo")
+end
+

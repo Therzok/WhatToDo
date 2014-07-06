@@ -3,6 +3,7 @@
     <!-- Libraries -->
     <Script Name="libs\GeminiAddon-1.1\GeminiAddon.lua"/>
     <Script Name="libs\GeminiGUI-1.0\GeminiGUI.lua"/>
+    <Script Name="libs\GeminiConfig-1.0\GeminiConfig-1.0.lua"/>
     <!-- AddOn -->
     <Script Name="WhatToDo.lua"/>
     <Script Name="QuestData.lua"/>
