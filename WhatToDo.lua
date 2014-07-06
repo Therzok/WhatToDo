@@ -6,23 +6,33 @@ require "GameLib"
 require "Money"
 require "PlayerPathLib"
 require "Quest"
+
+require "math"
 require "os"
 require "table"
 
 local Debug
 
-local WhatToDo = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon("WhatToDo", false, {})
-local GeminiGUI
-
+-- Quest categories.
 local QuestDaily = 63
 local QuestTradeskill = 53
 
-local QuestDailyPath = 12
+-- Configuration settings.
+local cShowUndiscovered	= true
+local cShowVouchers		= true
+local cShowMaxRep		= true
+local cShowIds			= true
+local cShowWhitelistOnly= true
 
-local cOnlyDiscovered
-local cVouchers
-local cNoRepWhenMax
+-- TODO
+local cShowForYourLevel = true
 
+-- Cached variables.
+local maxRep
+local GeminiGUI
+local WhatToDo = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon("WhatToDo", false, {})
+
+-- Utils
 local function clone(t) -- deep-copy a table
 	if type(t) ~= "table" then return t end
 	local meta = getmetatable(t)
@@ -43,84 +53,90 @@ local function lastReset()
 	return stamp.hour >= 10 and stamp.yday or stamp.yday - 1
 end
 
-function WhatToDo:ResetDailies()
-	self.cfg = {
-		last = lastReset(),
-		version = self.QuestDataVersion
-	}
-	self:DigQuests()
+local function getMaxRep()
+	if maxRep then return maxRep end
+	
+	maxRep = 0
+	for _, v in pairs(GameLib.GetReputationLevels()) do
+		maxRep = math.max(maxRep, v.nMax)
+	end
 end
 
-function WhatToDo:DigQuests()
-	self.cfg.dailies = {}
+local function createTableItem(self, category, iId, strTitle, extra)
+	if not self.dailiesKnown[category] then self.dailiesKnown[category] = {} end
+	if not extra.GameData and self.dailiesKnown[category][iId] then return end
 	
-	local function createTableItem(category, queQuest)
-		if not self.cfg.dailies[category] then self.cfg.dailies[category] = {} end
-		local iId = queQuest:GetId()
-		self.cfg.dailies[category][iId] = {
-			Name = (not self.QuestWhitelist[iId] and "[NEW] " or "") .. (self.QuestZoneExtensions[iId] or "") .. queQuest:GetTitle(),
-			Path = self.QuestPathExtensions[iId],
-			Tradeskill = self.QuestTradeskillExtensions[iId],
-			Whitelisted = self.QuestWhitelist[iId],
-			Id = iId
-		}
-	end
-	
-	local function storeRelevant(v)
-		for _, rew in pairs(v:GetRewardData().arFixedRewards) do
-			local category
-			if rew.eType == Quest.Quest2RewardType_Reputation then -- Reputation
-				category = rew.strFactionName
-			elseif rew.eType == Quest.Quest2RewardType_Money and rew.eCurrencyType == Money.CodeEnumCurrencyType.CraftingVouchers and
-					v:GetType() == 5 and v:GetSubType() ~= 0 then -- Crafting Vouchers
-				category = "Tradeskills - Crafting Vouchers" 
-			elseif rew.eType == Quest.Quest2RewardType_Item and rew.itemReward:GetItemId() == 28282 and
-					v:GetType() == 5 and v:GetSubType() ~= 0 then -- Daily Data Ration
-				category = "Tradeskills - Daily Data Ration"
-			end
-			if category then createTableItem(category, v) end
+	self.dailiesKnown[category][iId] = {
+		Name = strTitle,
+		Path = self.QuestPathExtensions[iId],
+		Tradeskill = self.QuestTradeskillExtensions[iId],
+		Whitelisted = self.QuestWhitelist[iId],
+		Id = iId,
+		Extra = extra
+	}
+end
+
+local function storeRelevant(self, v)
+	for _, rew in pairs(v:GetRewardData().arFixedRewards) do
+		local category
+		local extra = { GameData = true }
+		
+		if rew.eType == Quest.Quest2RewardType_Reputation then -- Reputation
+			category = rew.strFactionName
+			extra.Reputation = true
+		elseif rew.eType == Quest.Quest2RewardType_Money and rew.eCurrencyType == Money.CodeEnumCurrencyType.CraftingVouchers and
+				v:GetType() == 5 and v:GetSubType() ~= 0 then -- Crafting Vouchers
+			category = "Tradeskills - Crafting Vouchers"
+			extra.Vouchers = true
+		elseif rew.eType == Quest.Quest2RewardType_Item and rew.itemReward:GetItemId() == 28282 and
+				v:GetType() == 5 and v:GetSubType() ~= 0 then -- Daily Data Ration
+			category = "Tradeskills - Daily Data Ration"
+		end
+
+		if category then
+			createTableItem(self, category, v:GetId(), v:GetTitle(), extra)
+			return
 		end
 	end
-	
+end
+
+-- Called when loading. No magic that makes quests appear except accept.
+function WhatToDo:DigQuests()
 	for _, qcCategory in pairs(QuestLib.GetKnownCategories()) do
 		if qcCategory:GetId() == QuestDaily or qcCategory:GetId() == QuestTradeskill then
 			for _, epiEpisode in pairs(qcCategory:GetEpisodes()) do
 				if not epiEpisode:IsWorldStory() and not epiEpisode:IsZoneStory() and not epiEpisode:IsRegionalStory() then
 					for _, queQuest in pairs(epiEpisode:GetAllQuests(qcCategory:GetId())) do
-						storeRelevant(queQuest)
+						storeRelevant(self, queQuest)
 					end
 				end
 			end
 		end
 	end
-end
-
-function WhatToDo:PurgeInvalid()
+	
+	-- Add undiscovered quests
 	local player = GameLib.GetPlayerUnit()
-	local playerPath = player:GetPlayerPathType()
 	local playerFaction = player:GetFaction()
-	local playerTradeskills = {}
-	for _, tTradeskill in ipairs(CraftingLib.GetKnownTradeskills()) do
-		local tInfo = CraftingLib.GetTradeskillInfo(tTradeskill.eId)
-		playerTradeskills[tTradeskill.eId] = tInfo.bIsActive
-	end
+	local playerPath = player:GetPlayerPathType()
 
-	local newDailies = {}
-	for k1, v1 in pairs(self.cfg.dailies) do
-		local newList = {}
-		for _, v2 in pairs(v1) do
-			if (not v2.Path or v2.Path == playerPath) and 				-- Check path requirement.
-				(not v2.Faction or v2.Faction == playerFaction) and		-- Check faction requirement.
-				(not v2.Tradeskill or playerTradeskills[v2.Tradeskill]) -- Check tradeskills.
+	for k, v in pairs(self.QuestsKnown) do
+		for k2, v2 in pairs(v) do
+			local iId = playerFaction == Unit.CodeEnumFaction.ExilesPlayer and v2.IdE or v2.IdD
+			-- Check data which doesn't ever change for a character (Path, Faction).
+			if (not self.QuestFactionExtensions[iId] or self.QuestFactionExtensions[iId] == playerFaction) and
+				(not self.QuestPathExtensions[iId] or self.QuestPathExtensions[iId] == playerPath)
 			then
-				table.insert(newList, v2)
+				createTableItem(self, k, iId, v2.Name, {})
 			end
 		end
-
-		if #newList ~= 0 then newDailies[k1] = newList end
 	end
+end
 
-	self.cfg.dailies = newDailies
+function WhatToDo:ResetDailies()
+	self.cfg = {
+		last = lastReset(),
+		finished = {}
+	}
 end
 
 function WhatToDo:OnInitialize()
@@ -132,7 +148,10 @@ function WhatToDo:OnInitialize()
 	Apollo.RegisterSlashCommand("whattodo", "OnWhatToDoOn", self)
 	Apollo.RegisterSlashCommand("wtdf", "OnWhatToDoFinish", self)
 
-	self.cfg = {}
+	self.cfg = {
+		finished = {}
+	}
+	self.dailiesKnown = {}
 end
 
 function WhatToDo:OnSave(eLevel)
@@ -146,7 +165,7 @@ function WhatToDo:OnRestore(eLevel, tData)
 	self.cfg = clone(tData)
 
 	-- Test if we're over a daily cycle since last login.
-	if self.cfg.last ~= lastReset() or self.cfg.version ~= self.QuestDataVersion then
+	if self.cfg.last ~= lastReset() then
 		self:ResetDailies()
 	end
 end
@@ -158,7 +177,7 @@ function WhatToDo:OnEnable()
 	-- Fix tradeskills changing quests. TradeskillLearnedFromTHOR
 	-- Register events for levelup when adding minLevel support.
 	
-	self:PurgeInvalid()
+	self:DigQuests()
 end
 
 function WhatToDo:OnDisable()
@@ -167,38 +186,69 @@ end
 
 -- Track quest completion.
 function WhatToDo:OnQuestStateChanged(queUpdated, eState)
+	local store
 	if eState == Quest.QuestState_Accepted then
-		if Debug then Print("Accepted [" .. queUpdated:GetId() .. "]: " .. queUpdated:GetTitle()) end
+		store = true
 	elseif eState == Quest.QuestState_Completed then
-		if Debug then Print("Completed [" .. queUpdated:GetId() .. "]: " .. queUpdated:GetTitle()) end
 		self:FinishQuest(queUpdated:GetId())
+		store = true
 	end
+	if store then storeRelevant(queUpdated) end
 end
 
--- Remove the quest from the dailies list.
+-- Add the quest to the dailies finished list.
 function WhatToDo:FinishQuest(iQuestId)
-	local zone, index
-	for k1, v1 in pairs(self.cfg.dailies) do
-		for k2, v2 in pairs(v1) do
-			if v2.Id == iQuestId then
-				zone, index = k1, k2
-				break
-			end
-		end
-	end
-
-	if not zone or not index then return end
-
-	table.remove(self.cfg.dailies[zone], index)
-	if #self.cfg.dailies[zone] == 0 then
-		self.cfg.dailies[zone] = nil
-	end
-
+	self.cfg.finished[iQuestId] = true
 	self:RedrawTree()
 end
 
+local function repIsMax(strFaction)
+	for _, v in pairs(GameLib.GetReputationInfo()) do
+		if v.nCurrent == getMaxRep() and v.strName == strFaction then
+			return true
+		end
+	end
+	return false
+end
+
+function WhatToDo:GetDisplayTable()
+	self:DigQuests()
+	local toDisplay = {}
+	
+	-- Check tradeskills in showing.
+	local playerTradeskills = {}
+	for _, tTradeskill in ipairs(CraftingLib.GetKnownTradeskills()) do
+		local tInfo = CraftingLib.GetTradeskillInfo(tTradeskill.eId)
+		playerTradeskills[tTradeskill.eId] = tInfo.bIsActive
+	end
+
+	for category, quests in pairs(self.dailiesKnown) do
+		for _, quest in pairs(quests) do
+			if (cShowUndiscovered or quest.Extra.GameData) and						-- Show Undiscovered based on toggle.
+				(cShowVouchers or not quest.Extra.Vouchers) and						-- Show Vouchers based on toggle.
+				(cShowMaxRep or not repIsMax(category))	and							-- Show Max Reputation based on toggle.
+				(not quest.Tradeskill or playerTradeskills[quest.Tradeskill]) and	-- Purge Tradeskills
+				(not self.cfg.finished[quest.Id]) and								-- Purge Finished
+				(not cShowWhitelistOnly or quest.Whitelisted)						-- Show only whitelisted.
+			then
+				if not toDisplay[category] then toDisplay[category] = {} end
+				table.insert(toDisplay[category], quest)
+			end
+		end
+	end
+	return toDisplay
+end
+
+local function formatTitle(self, iId, strTitle, extra)
+	return (not extra.GameData and "[Undiscovered] " or "") ..	-- Undiscovered quest in QuestsKnown.
+		(not self.QuestWhitelist[iId] and "[NEW] " or "") ..	-- GameData quest not in QuestsKnown.
+		(self.QuestZoneExtensions[iId] or "") ..				-- Zone extensions for Tradeskills.
+		strTitle ..												-- Quest title.
+		(cShowIds and " [" .. iId .. "]" or "")					-- Show IDs.
+end
+
 -- Tree with items construction.
-local function CreateTree()
+function WhatToDo:CreateTree()
 	return { -- Tree Control
 		Name			= "QuestTree",
 		WidgetType		= "TreeControl",
@@ -207,14 +257,15 @@ local function CreateTree()
 		Events			= {
 			WindowLoad = function(self, wndHandler, wndControl)
 				local items = false
-				for k, v in pairs(self.cfg.dailies) do
+				local toDisplay = self:GetDisplayTable()
+				
+				for k, v in pairs(toDisplay) do
 					items = true
 
 					local hParent = 0
 					hParent = wndControl:AddNode(hParent, k)
 					for k2, v2 in pairs(v) do
-						local displayName = Debug and v2.Name .. " [" .. v2.Id .. "]" or v2.Name
-						wndControl:AddNode(hParent, displayName)
+						wndControl:AddNode(hParent, formatTitle(self, v2.Id, v2.Name, v2.Extra))
 					end
 				end
 				if not items then
@@ -228,10 +279,10 @@ end
 -- Redraws the tree.
 function WhatToDo:RedrawTree()
 	if not self.wndMain then return end
-
+	
 	local container = self.wndMain:FindChild("QuestWidgetContainer")
 	container:DestroyChildren()
-	GeminiGUI:Create(CreateTree()):GetInstance(self, container)
+	GeminiGUI:Create(self:CreateTree()):GetInstance(self, container)
 end
 
 -- On SlashCommand "/wtdf"

@@ -27,12 +27,12 @@ local Dominion = Unit.CodeEnumFaction.DominionPlayer
 local Exiles = Unit.CodeEnumFaction.ExilesPlayer
 
 local WTD = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:GetAddon("WhatToDo")
-WTD.QuestData = {
+WTD.QuestsKnown = {
 	-- Reputation dailies
 	["MISSION: Crimson Badlands"] = {
-		{ IdD = 7468, IdE = 7464, Name = "HOLDOUT: Stop the Scouts", Path = Soldier },
-		{ IdD = 7466, IdE = 7462, Name = "ANALYSIS: Malicious Mutagen", Path = Scientist },
-		{ IdD = 7469, IdE = 7465, Name = "OPERATIONS: Covert Monitoring", Path = Explorer },
+		{ IdD = 7468, IdE = 7464, Name = "HOLDOUT: Stop the Scouts" },
+		{ IdD = 7466, IdE = 7462, Name = "ANALYSIS: Malicious Mutagen" },
+		{ IdD = 7469, IdE = 7465, Name = "OPERATIONS: Covert Monitoring" },
 		{ IdD = 7457, IdE = 7454, Name = "Queen For A Day [GROUP 2+]" },
 		{ IdD = 7592, IdE = 7591, Name = "Unexpected Discovery [GROUP 2+]" },
 		{ IdD = 7448, IdE = 7449, Name = "Scout the Island" },
@@ -46,15 +46,15 @@ WTD.QuestData = {
 		{ IdD = 7458, IdE = 7455, Name = "Burning Waters" },
 		
 		-- Different Quests
-		{ IdD = 7496, IdE = -1, Name = "Reclaim the Power", Faction = Dominion },
-		{ IdD = 7498, IdE = -1, Name = "Missing Technologies", Faction = Dominion },
-		{ IdD = -1, IdE = 7486, Name = "Equipment Under Siege", Faction = Exiles },
-		{ IdD = -1, IdE = 7488, Name = "Electrical Disturbance", Faction = Exiles },
+		{ IdD = 7496, IdE = 7496, Name = "Reclaim the Power" },
+		{ IdD = 7498, IdE = 7498, Name = "Missing Technologies" },
+		{ IdD = 7486, IdE = 7486, Name = "Equipment Under Siege" },
+		{ IdD = 7488, IdE = 7488, Name = "Electrical Disturbance" },
 	},
 	["MISSION: Northern Wastes"] = {
-		{ IdD = 7105, IdE = 7104, Name = "OPERATIONS: Maintaining Communications", Path = Explorer },
-		{ IdD = 7092, IdE = 7086, Name = "ANALYSIS: Crystal Healing", Path = Scientist },
-		{ IdD = 7102, IdE = 7095, Name = "HOLDOUT: Stolen Supplies", Path = Soldier },
+		{ IdD = 7105, IdE = 7104, Name = "OPERATIONS: Maintaining Communications" },
+		{ IdD = 7092, IdE = 7086, Name = "ANALYSIS: Crystal Healing" },
+		{ IdD = 7102, IdE = 7095, Name = "HOLDOUT: Stolen Supplies" },
 		{ IdD = 7081, IdE = 7082, Name = "Frozen Assets" },
 		{ IdD = 7090, IdE = 7091, Name = "Timely Observations" },
 		{ IdD = 7094, IdE = 7093, Name = "Stocking Up" },
@@ -71,26 +71,18 @@ WTD.QuestData = {
 		{ IdD = 7077, IdE = 7078, Name = "Eldan Eradication" },
 		{ IdD = 7072, IdE = 7074, Name = "A New God" },
 	},
-	["Daily Data Ration"] = {
-		{ IdD = 9610, IdE = -1, Name = "(Illium) Torine Tools", Tradeskill = Weaponsmith, Faction = Dominion },
-		{ IdD = 9604, IdE = -1, Name = "(Illium) Pellskinner Blues", Tradeskill = Outfitter, Faction = Dominion },
-		{ IdD = 9606, IdE = -1, Name = "(Illium) Loppstitch Made Easy", Tradeskill = Tailor, Faction = Dominion },
-		{ IdD = 9608, IdE = -1, Name = "(Illium) Techno Toys", Tradeskill = Technologist, Faction = Dominion },
-		{ IdD = 9598, IdE = -1, Name = "(Illium) Style Eye for the Clone Guy", Tradeskill = Architect, Faction = Dominion },
-		{ IdD = 9600, IdE = -1, Name = "(Illium) Dead Man's Vest", Tradeskill = Armorer, Faction = Dominion },
-	},
-	["Daily Data Ration"] = {
-		{ IdD = -1, IdE = 9611, Name = "(Illium) Torine Tools", Tradeskill = Weaponsmith, Faction = Exiles },
-		{ IdD = -1, IdE = 9605, Name = "(Illium) Pellskinner Blues", Tradeskill = Outfitter, Faction = Exiles },
-		{ IdD = -1, IdE = 9607, Name = "(Illium) Loppstitch Made Easy", Tradeskill = Tailor, Faction = Exiles },
-		{ IdD = -1, IdE = 9609, Name = "(Illium) Techno Toys", Tradeskill = Technologist, Faction = Exiles },
-		{ IdD = -1, IdE = 9599, Name = "(Illium) Style Eye for the Clone Guy", Tradeskill = Architect, Faction = Exiles },
-		{ IdD = -1, IdE = 9601, Name = "(Illium) Dead Man's Vest", Tradeskill = Armorer, Faction = Exiles },
+	["Tradeskills - Daily Data Ration"] = {
+		{ IdD = 9610, IdE = 9611, Name = "Torine Tools" },
+		{ IdD = 9604, IdE = 9605, Name = "Pellskinner Blues" },
+		{ IdD = 9606, IdE = 9607, Name = "Loppstitch Made Easy" },
+		{ IdD = 9608, IdE = 9609, Name = "Techno Toys" },
+		{ IdD = 9598, IdE = 9599, Name = "Style Eye for the Clone Guy" },
+		{ IdD = 9600, IdE = 9601, Name = "Dead Man's Vest" },
 	}
 }
 
 WTD.QuestDataBlacklist = {
-
+	-- Empty for now.
 }
 
 WTD.QuestWhitelist = {
