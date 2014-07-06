@@ -58,6 +58,77 @@ local optionsConfig = {
 	},
 }
 
+-- Hooks
+local function questLogOverride(self, queTarget)
+	if not queTarget then
+		return
+	end
+
+	self.wndLeftFilterActive:SetCheck(queTarget:IsInLog())
+	self.wndLeftFilterHidden:SetCheck(queTarget:IsIgnored())
+	self.wndLeftFilterFinished:SetCheck(not queTarget:IsInLog())
+	self.wndLeftSideScroll:DestroyChildren()
+
+	local qcTop = queTarget:GetCategory()
+	local epiMid = queTarget:GetEpisode()
+
+	self:RedrawLeftTree() -- Add categories
+
+	if queTarget:GetState() == Quest.QuestState_Unknown then
+		self.wndQuestInfoControls:Show(false)
+
+		self:DrawUnknownRightSide(queTarget)
+		self:ResizeRight()
+		self:ResizeTree()
+		return
+	end
+
+	local strCategoryKey
+	local strEpisodeKey
+	local strQuestKey
+
+	if epiMid then
+		if epiMid:IsWorldStory() then
+			strCategoryKey = "CWorldStory"
+			strEpisodeKey = strCategoryKey.."E"..epiMid:GetId()
+			strQuestKey = strEpisodeKey.."Q"..queTarget:GetId()
+		elseif epiMid:IsZoneStory() or epiMid:IsRegionalStory() then
+			strCategoryKey = "C"..qcTop:GetId()
+			strEpisodeKey = strCategoryKey.."E"..epiMid:GetId()
+			strQuestKey = strEpisodeKey.."Q"..queTarget:GetId()
+		else
+			strCategoryKey = "C"..qcTop:GetId()
+			strEpisodeKey = strCategoryKey.."ETasks"
+			strQuestKey = strEpisodeKey.."Q"..queTarget:GetId()
+		end
+	end
+
+	if qcTop then
+		local wndTop = self.arLeftTreeMap[strCategoryKey]
+		if wndTop then
+			wndTop:FindChild("TopLevelBtn"):SetCheck(true)
+			self:RedrawLeftTree() -- Add episodes
+
+			if epiMid then
+				local wndMiddle = self.arLeftTreeMap[strEpisodeKey]
+				if wndMiddle then
+					wndMiddle:FindChild("MiddleLevelBtn"):SetCheck(true)
+					self:RedrawLeftTree() -- Add quests
+
+					local wndBot = self.arLeftTreeMap[strQuestKey]
+					if wndBot then
+						wndBot:FindChild("BottomLevelBtn"):SetCheck(true)
+						self:OnBottomLevelBtnCheck(wndBot:FindChild("BottomLevelBtn"), wndBot:FindChild("BottomLevelBtn"))
+					end
+				end
+			end
+		end
+	end
+
+	self:ResizeTree()
+	self:RedrawRight()
+end
+
 -- Utils
 local function clone(t) -- deep-copy a table
 	if type(t) ~= "table" then return t end
@@ -217,6 +288,11 @@ function WhatToDo:OnEnable()
 	Apollo.RegisterEventHandler("InterfaceMenuListHasLoaded", "OnInterfaceMenuListHasLoaded", self)
 	Apollo.RegisterEventHandler("WhatToDoMenuClicked", "OnWhatToDoToggle", self)
 
+	-- Hook a better ShowQuestLog.
+	local qlog = Apollo.GetAddon("QuestLog")
+	self.OldShowQuestLog = qlog.OnGenericEvent_ShowQuestLog
+	qlog.OnGenericEvent_ShowQuestLog = questLogOverride
+
 	-- Fix tradeskills changing quests. TradeskillLearnedFromTHOR
 	-- Register events for levelup when adding minLevel support.
 
@@ -227,6 +303,11 @@ function WhatToDo:OnDisable()
 	Apollo.RemoveEventHandler("QuestStateChanged", self)
 	Apollo.RemoveEventHandler("InterfaceMenuListHasLoaded", self)
 	Apollo.RemoveEventHandler("WhatToDoMenuClicked", self)
+
+	-- Hook a better ShowQuestLog.
+	if not quest:IsInLog() then -- unhook it
+		qlog.OnGenericEvent_ShowQuestLog = self.OldShowQuestLog
+	end
 end
 
 -- Track quest completion.
@@ -298,76 +379,6 @@ local function formatTitle(self, iId, strTitle, extra)
 		(self.cfg.options.cShowIds and " [" .. iId .. "]" or "")-- Show IDs.
 end
 
-local function questLogOverride(self, queTarget)
-	if not queTarget then
-		return
-	end
-
-	self.wndLeftFilterActive:SetCheck(false)
-	self.wndLeftFilterHidden:SetCheck(false)
-	self.wndLeftFilterFinished:SetCheck(true)
-	self.wndLeftSideScroll:DestroyChildren()
-
-	local qcTop = queTarget:GetCategory()
-	local epiMid = queTarget:GetEpisode()
-
-	self:RedrawLeftTree() -- Add categories
-
-	if queTarget:GetState() == Quest.QuestState_Unknown then
-		self.wndQuestInfoControls:Show(false)
-
-		self:DrawUnknownRightSide(queTarget)
-		self:ResizeRight()
-		self:ResizeTree()
-		return
-	end
-
-	local strCategoryKey
-	local strEpisodeKey
-	local strQuestKey
-
-	if epiMid then
-		if epiMid:IsWorldStory() then
-			strCategoryKey = "CWorldStory"
-			strEpisodeKey = strCategoryKey.."E"..epiMid:GetId()
-			strQuestKey = strEpisodeKey.."Q"..queTarget:GetId()
-		elseif epiMid:IsZoneStory() or epiMid:IsRegionalStory() then
-			strCategoryKey = "C"..qcTop:GetId()
-			strEpisodeKey = strCategoryKey.."E"..epiMid:GetId()
-			strQuestKey = strEpisodeKey.."Q"..queTarget:GetId()
-		else
-			strCategoryKey = "C"..qcTop:GetId()
-			strEpisodeKey = strCategoryKey.."ETasks"
-			strQuestKey = strEpisodeKey.."Q"..queTarget:GetId()
-		end
-	end
-
-	if qcTop then
-		local wndTop = self.arLeftTreeMap[strCategoryKey]
-		if wndTop then
-			wndTop:FindChild("TopLevelBtn"):SetCheck(true)
-			self:RedrawLeftTree() -- Add episodes
-
-			if epiMid then
-				local wndMiddle = self.arLeftTreeMap[strEpisodeKey]
-				if wndMiddle then
-					wndMiddle:FindChild("MiddleLevelBtn"):SetCheck(true)
-					self:RedrawLeftTree() -- Add quests
-
-					local wndBot = self.arLeftTreeMap[strQuestKey]
-					if wndBot then
-						wndBot:FindChild("BottomLevelBtn"):SetCheck(true)
-						self:OnBottomLevelBtnCheck(wndBot:FindChild("BottomLevelBtn"), wndBot:FindChild("BottomLevelBtn"))
-					end
-				end
-			end
-		end
-	end
-
-	self:ResizeTree()
-	self:RedrawRight()
-end
-
 -- Tree with items construction.
 function WhatToDo:CreateTree()
 	return { -- Tree Control
@@ -397,18 +408,8 @@ function WhatToDo:CreateTree()
 				local quest = wndControl:GetNodeData(hNode)
 				if not quest then return end
 
-				local qlog = Apollo.GetAddon("QuestLog")
-				local old = qlog.OnGenericEvent_ShowQuestLog
-				if not quest:IsInLog() then -- hook it
-					qlog.OnGenericEvent_ShowQuestLog = questLogOverride
-				end
-
 				Event_FireGenericEvent("ShowQuestLog", "WhatToDo")
 				Event_FireGenericEvent("GenericEvent_ShowQuestLog", quest)
-
-				if not quest:IsInLog() then -- unhook it
-					qlog.OnGenericEvent_ShowQuestLog = old
-				end
 			end
 		}
 	}
