@@ -32,6 +32,7 @@ local defaultOptions = {
 	cShowVouchers		= true,
 	cShowMaxRep			= true,
 	cShowIds			= false,
+	cShowFinished		= false,
 	cShowWhitelistOnly	= false,-- TODO: Need more quests.
 	cShowForYourLevel	= true	-- TODO
 }
@@ -53,6 +54,7 @@ local optionsConfig = {
 		vouchers = createToggle("cShowVouchers", "Crafting Vouchers Quests", "Shows quests which award Crafting Vouchers."),
 		maxrep = createToggle("cShowMaxRep", "Show Max Reputation", "Shows quests which no longer can award Reputation."),
 		showids = createToggle("cShowIds", "Show IDs", "Shows the IDs in the quest list."),
+		showfinished = createToggle("cShowFinished", "Finished Quests", "Shows quests which have been finished."),
 	},
 }
 
@@ -183,7 +185,7 @@ function WhatToDo:OnInitialize()
 
 	-- Register configuration,
 	GeminiConfig:RegisterOptionsTable("WhatToDo", optionsConfig)
-	GeminiConfigDialog:SetDefaultSize("WhatToDo", 295, 275)
+	GeminiConfigDialog:SetDefaultSize("WhatToDo", 295, 300)
 end
 
 function WhatToDo:OnSave(eLevel)
@@ -224,6 +226,7 @@ end
 function WhatToDo:OnDisable()
 	Apollo.RemoveEventHandler("QuestStateChanged", self)
 	Apollo.RemoveEventHandler("InterfaceMenuListHasLoaded", self)
+	Apollo.RemoveEventHandler("WhatToDoMenuClicked", self)
 end
 
 -- Track quest completion.
@@ -271,12 +274,12 @@ function WhatToDo:GetDisplayTable()
 
 	for category, quests in pairs(self.dailiesKnown) do
 		for _, quest in pairs(quests) do
-			if (self.cfg.options.cShowUndiscovered or quest.Extra.GameData) and		-- Show Undiscovered based on toggle.
-				(self.cfg.options.cShowVouchers or not quest.Extra.Vouchers) and	-- Show Vouchers based on toggle.
-				(self.cfg.options.cShowMaxRep or not repIsMax(category)) and		-- Show Max Reputation based on toggle.
-				(not quest.Tradeskill or playerTradeskills[quest.Tradeskill]) and	-- Purge Tradeskills
-				(not self.cfg.finished[quest.Id]) and								-- Purge Finished
-				(not self.cfg.options.cShowWhitelistOnly or quest.Whitelisted)		-- Show only whitelisted.
+			if (self.cfg.options.cShowUndiscovered or quest.Extra.GameData) and			-- Show Undiscovered based on toggle.
+				(self.cfg.options.cShowVouchers or not quest.Extra.Vouchers) and		-- Show Vouchers based on toggle.
+				(self.cfg.options.cShowMaxRep or not repIsMax(category)) and			-- Show Max Reputation based on toggle.
+				(not quest.Tradeskill or playerTradeskills[quest.Tradeskill]) and		-- Purge Tradeskills
+				(self.cfg.options.cShowFinished or not self.cfg.finished[quest.Id]) and	-- Purge Finished
+				(not self.cfg.options.cShowWhitelistOnly or quest.Whitelisted)			-- Show only whitelisted.
 			then
 				if not toDisplay[category] then toDisplay[category] = {} end
 				table.insert(toDisplay[category], quest)
@@ -288,6 +291,7 @@ end
 
 local function formatTitle(self, iId, strTitle, extra)
 	return (not extra.GameData and "[Undiscovered] " or "") ..	-- Undiscovered quest in QuestsKnown.
+		(self.cfg.finished[iId] and "[Finished] " or "") ..		-- Finished quests.
 		(not self.QuestWhitelist[iId] and "[NEW] " or "") ..	-- GameData quest not in QuestsKnown.
 		(self.QuestZoneExtensions[iId] or "") ..				-- Zone extensions for Tradeskills.
 		strTitle ..												-- Quest title.
