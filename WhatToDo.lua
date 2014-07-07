@@ -303,8 +303,6 @@ function WhatToDo:OnEnable()
 
 	-- Fix tradeskills changing quests. TradeskillLearnedFromTHOR
 	-- Register events for levelup when adding minLevel support.
-
-	self:DigQuests()
 end
 
 function WhatToDo:OnDisable()
