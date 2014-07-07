@@ -204,6 +204,24 @@ local function storeRelevant(self, v)
 	end
 end
 
+function WhatToDo:FindQuest(iId)
+	for _, qcCategory in pairs(QuestLib.GetKnownCategories()) do
+		for _, epiEpisode in pairs(qcCategory:GetEpisodes()) do
+			for _, queQuest in pairs(epiEpisode:GetAllQuests(qcCategory:GetId())) do
+				if queQuest:GetId() == iId then
+					return {
+						Title = queQuest:GetTitle(), SubType = queQuest:GetSubType(),
+						Type = queQuest:GetType(), PathQuest = queQuest:IsPathQuest(),
+						CategoryId = queQuest:GetCategory():GetId(), PathQuestType = queQuest:GetPathQuestType(),
+						Id = queQuest:GetId(), Rewards = queQuest:GetRewardData(), CategoryTitle = queQuest:GetCategory():GetTitle(),
+						WorldStory = epiEpisode:IsWorldStory(), ZoneStory = epiEpisode:IsZoneStory(), RegionalStory = epiEpisode:IsRegionalStory()
+					}
+				end
+			end
+		end
+	end
+end
+
 -- Called when loading. No magic that makes quests appear except accept.
 function WhatToDo:DigQuests()
 	if hasDug then return end

@@ -44,6 +44,7 @@ WTD.QuestsKnown = {
 		{ IdD = 7467, IdE = 7463, Name = "Guarding the Front" },
 		{ IdD = 7446, IdE = 7447, Name = "BBQ Blast" },
 		{ IdD = 7458, IdE = 7455, Name = "Burning Waters" },
+		{ IdD = 7442, IdE = 7443, Name = "Supply Drop" },
 
 		-- Different Quests
 		{ IdD = 7496, IdE = 7496, Name = "Reclaim the Power" },
@@ -64,7 +65,6 @@ WTD.QuestsKnown = {
 		{ IdD = 7107, IdE = 7085, Name = "Establising Base Perimeters" },
 		{ IdD = 7089, IdE = 7087, Name = "Grim Scavenging" },
 		{ IdD = 7103, IdE = 7088, Name = "Rescue Party" },
-		{ IdD = 7442, IdE = 7443, Name = "Supply Drop" },
 		{ IdD = 7079, IdE = 7080, Name = "Disarming the Enemy" },
 		{ IdD = 7113, IdE = 7114, Name = "Tame the Wastes" },
 		{ IdD = 7075, IdE = 7076, Name = "They'll thank You Later" },
