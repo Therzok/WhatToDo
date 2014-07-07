@@ -1,5 +1,11 @@
 --[[
 	TODO: UI for 'finishing' quests.
+	TODO: Gather more quests data.
+	TODO: Small tracker.
+	TODO: Node coloring.
+	TODO: Tradeskill monitoring
+	TODO: Minimum Level option and levelup.
+	TODO: Investigate Quest:GetPathQuestType()
 ]]
 require "CraftingLib"
 require "GameLib"
@@ -290,8 +296,10 @@ function WhatToDo:OnEnable()
 
 	-- Hook a better ShowQuestLog.
 	local qlog = Apollo.GetAddon("QuestLog")
-	self.OldShowQuestLog = qlog.OnGenericEvent_ShowQuestLog
-	qlog.OnGenericEvent_ShowQuestLog = questLogOverride
+	if qlog then
+		self.OldShowQuestLog = qlog.OnGenericEvent_ShowQuestLog
+		qlog.OnGenericEvent_ShowQuestLog = questLogOverride
+	end
 
 	-- Fix tradeskills changing quests. TradeskillLearnedFromTHOR
 	-- Register events for levelup when adding minLevel support.
@@ -304,8 +312,9 @@ function WhatToDo:OnDisable()
 	Apollo.RemoveEventHandler("InterfaceMenuListHasLoaded", self)
 	Apollo.RemoveEventHandler("WhatToDoMenuClicked", self)
 
-	-- Hook a better ShowQuestLog.
-	if not quest:IsInLog() then -- unhook it
+	-- Unhook ShowQuestLog.
+	local qlog = Apollo.GetAddon("QuestLog")
+	if qlog then
 		qlog.OnGenericEvent_ShowQuestLog = self.OldShowQuestLog
 	end
 end
