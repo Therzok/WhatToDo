@@ -27,6 +27,8 @@ local Dominion = Unit.CodeEnumFaction.DominionPlayer
 local Exiles = Unit.CodeEnumFaction.ExilesPlayer
 
 local WTD = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:GetAddon("WhatToDo")
+
+-- Key = ID, Value = { IdD = DominionId, IdE = ExilesId, Name = Quest name }
 WTD.QuestsKnown = {
 	-- Reputation dailies
 	["MISSION: Crimson Badlands"] = {
@@ -81,10 +83,13 @@ WTD.QuestsKnown = {
 	}
 }
 
+-- Key = ID, Value = true.
 WTD.QuestDataBlacklist = {
 	-- Empty for now.
 }
 
+-- Quests which are shown.
+-- Key = ID, Value = true.
 WTD.QuestWhitelist = {
 	-- Crimson Badlands.
 	[7468] = true, [7464] = true,	-- "HOLDOUT: Stop the Scouts"
@@ -103,6 +108,7 @@ WTD.QuestWhitelist = {
 	[7458] = true, [7455] = true,	-- "Burning Waters"
 	[7496] = true, [7488] = true,	-- "Reclaim the Power" / "Electrical Disturbance"
 	[7498] = true, [7486] = true,	-- "Missing Technologies" / "Equipment Under Siege"
+	[7442] = true, [7443] = true,	-- "Supply Drop"
 
 	-- Northern Wastes
 	[7102] = true, [7095] = true,	-- "HOLDOUT: Stolen Supplies"
@@ -117,7 +123,6 @@ WTD.QuestWhitelist = {
 	[7107] = true, [7085] = true,	-- "Establising Base Perimeters"
 	[7089] = true, [7087] = true,	-- "Grim Scavenging"
 	[7103] = true, [7088] = true,	-- "Rescue Party"
-	[7442] = true, [7443] = true,	-- "Supply Drop"
 	[7079] = true, [7080] = true,	-- "Disarming the Enemy"
 	[7113] = true, [7114] = true,	-- "Tame the Wastes"
 	[7075] = true, [7076] = true,	-- "They'll thank You Later"
@@ -133,6 +138,8 @@ WTD.QuestWhitelist = {
 	[9600] = true, [9601] = true,	-- "Dead Man's Vest"
 }
 
+-- This is used to check what faction is necessary for the quest.
+-- Key = ID, Value = Faction enum value.
 WTD.QuestFactionExtensions = {
 	-- Crimson Badlands
 	[7496] = Dominion, [7488] = Exiles,	-- "Reclaim the Power" / "Electrical Disturbance"
@@ -147,6 +154,8 @@ WTD.QuestFactionExtensions = {
 	[9600] = Dominion, [9601] = Exiles, -- "Dead Man's Vest"
 }
 
+-- This is used to check what path is necessary for the quest.
+-- Key = ID, Value = Path enum value.
 WTD.QuestPathExtensions = {
 	-- Crimson Badlands
 	[7468] = Soldier,	[7464] = Soldier,	-- "HOLDOUT: Stop the Scouts"
@@ -159,6 +168,8 @@ WTD.QuestPathExtensions = {
 	[7092] = Scientist,	[7086] = Scientist,	-- "ANALYSIS: Crystal Healing"
 }
 
+-- This text is prepended to the beginning of a non-zone quest.
+-- Key = ID, Value = String to prepend.
 WTD.QuestZoneExtensions = {
 	-- Tradeskills
 	[9610] = "(Illium) ", [9611] = "(Thayd) ",	-- "Torine Tools"
@@ -169,6 +180,8 @@ WTD.QuestZoneExtensions = {
 	[9600] = "(Illium) ", [9601] = "(Thayd) ",	-- "Dead Man's Vest"
 }
 
+-- This is used to check what tradeskill is necessary for the quest.
+-- Key = ID, Value = Tradeskill enum value.
 WTD.QuestTradeskillExtensions = {
 	-- Tradeskills
 	[9610] = Weaponsmith,	[9611] = Weaponsmith,	-- "Torine Tools"
@@ -178,3 +191,13 @@ WTD.QuestTradeskillExtensions = {
 	[9598] = Architect, 	[9599] = Architect,		-- "Style Eye for the Clone Guy"
 	[9600] = Armorer, 		[9601] = Armorer,		-- "Dead Man's Vest"
 }
+
+-- This is used to add daily quests which award no rep.
+-- Key = ID, Value = Faction name.
+WTD.QuestNoRepExtensions = {
+	-- Northern Wastes
+	[7070] = "MISSION: Northern Wastes", [7071] = "MISSION: Northern Wastes",	-- "Icy Enlightenment"
+	[7068] = "MISSION: Northern Wastes", [7069] = "MISSION: Northern Wastes",	-- "Frozen Dinners"
+	[7094] = "MISSION: Northern Wastes", [7093] = "MISSION: Northern Wastes",	-- "Stocking Up"
+}
+

@@ -194,6 +194,8 @@ local function storeRelevant(self, v)
 		elseif rew.eType == Quest.Quest2RewardType_Item and rew.itemReward:GetItemId() == 28282 and
 				v:GetType() == 5 and v:GetSubType() ~= 0 then -- Daily Data Ration
 			category = "Tradeskills - Daily Data Ration"
+		else
+			category = self.QuestNoRepExtensions[v:GetId()]
 		end
 
 		if category then
