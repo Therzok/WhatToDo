@@ -305,7 +305,7 @@ function WhatToDo:DigQuests()
 			if (not self.QuestFactionExtensions[iId] or self.QuestFactionExtensions[iId] == playerFaction) and
 				(not self.QuestPathExtensions[iId] or self.QuestPathExtensions[iId] == playerPath)
 			then
-				createTableItem(self, k, iId, v2.Name, {})
+				createTableItem(self, k, iId, v2.Name, { Vouchers = self.QuestCraftingVouchersExtensions[iId] })
 			end
 		end
 	end
@@ -353,9 +353,10 @@ function WhatToDo:OnRestore(eLevel, tData)
 	self.cfg = clone(tData)
 
 	-- Check if options exist.
-	if not self.cfg.options then
-		self.cfg.options = defaultOptions
-	end
+	self.cfg.options = self.cfg.options or defaultOptions
+
+	-- Check if finished exists.
+	self.cfg.finished = self.cfg.finished or {}
 
 	-- Test if we're over a daily cycle since last login.
 	if self.cfg.last ~= lastReset() then
