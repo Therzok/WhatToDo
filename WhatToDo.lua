@@ -206,7 +206,7 @@ end
 
 local function lastReset()
 	local stamp = os.date("!*t")	-- This is the UTC time.
-	return stamp.hour >= 10 and stamp.yday or stamp.yday - 1
+	return stamp.yday - (stamp.hour >= 10 + (stamp.isdst and 1 or 0) and 0 or 1)
 end
 
 local function getMaxRep()
