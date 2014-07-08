@@ -62,6 +62,61 @@ local optionsConfig = {
 	},
 }
 
+-- Window settings.
+local tWndDefinition = {
+	Name			= "WhatToDoWindow",
+	Template		= "CRB_TooltipSimple",
+	UseTemplateBG	= true,
+	Picture			= false,
+	Moveable		= true,
+	Border			= true,
+	AnchorCenter	= {450, 460},
+	Escapable		= true,
+
+	Pixies = {
+		{
+			Line			= true,
+			AnchorPoints	= "HFILL", -- will be translated to {0,0,1,0},
+			AnchorOffsets	= {0,30,0,30},
+			Color			= "white",
+		},
+		{
+			Text			= "What To Do - Daily Tracker",
+			Font			= "CRB_HeaderHuge",
+			TextColor		= "xkcdYellow",
+			AnchorPoints	= "HFILL",
+			DT_CENTER		= true,
+			DT_VCENTER		= true,
+			AnchorOffsets	= {0,0,0,20},
+		},
+	},
+
+	Children = {
+		{
+			WidgetType		= "PushButton",
+			AnchorPoints	= "TOPRIGHT", -- will be translated to { 1, 0, 1, 0 }
+			AnchorOffsets	= { -17, -3, 3, 17 },
+			Base			= "CRB_Basekit:kitBtn_Holo_Close",
+			NoClip			= true,
+			Events			= { ButtonSignal = function(_, wndHandler, wndControl) wndControl:GetParent():Close() end, },
+		},
+		{
+			WidgetType		= "PushButton",
+			AnchorPoints	= "TOPRIGHT", -- will be translated to { 1, 0, 1, 0 }
+			AnchorOffsets	= { -17, 17, 3, 37 },
+			Base			= "CRB_Basekit:kitBtn_Metal_Options",
+			NoClip			= true,
+			Events			= { ButtonSignal = function(_, wndHandler, wndControl) WhatToDo:OnWhatToDoConfig() end, },
+		},
+		{ 
+			Name			= "QuestWidgetContainer", 
+			AnchorPoints	= "FILL", -- will be translated to { 0, 0, 1, 1 }
+			AnchorOffsets	= {0,40,0,0},
+			NoSelection		= true,
+		},
+	},
+}
+
 -- Hooks
 local function questLogOverride(self, queTarget)
 	if not queTarget then
@@ -281,6 +336,10 @@ function WhatToDo:OnInitialize()
 	-- Register configuration,
 	GeminiConfig:RegisterOptionsTable("WhatToDo", optionsConfig)
 	GeminiConfigDialog:SetDefaultSize("WhatToDo", 295, 300)
+
+	-- Create UI.
+	self.wndMain = GeminiGUI:Create(tWndDefinition):GetInstance(self)
+	self.wndMain:Show(false)
 end
 
 function WhatToDo:OnSave(eLevel)
@@ -311,6 +370,7 @@ function WhatToDo:OnEnable()
 	-- Register event for menu handling.
 	Apollo.RegisterEventHandler("InterfaceMenuListHasLoaded", "OnInterfaceMenuListHasLoaded", self)
 	Apollo.RegisterEventHandler("WhatToDoMenuClicked", "OnWhatToDoToggle", self)
+	Apollo.RegisterEventHandler("WindowManagementReady", "OnWindowManagementReady", self)
 
 	-- Hook a better ShowQuestLog.
 	local qlog = Apollo.GetAddon("QuestLog")
@@ -350,6 +410,11 @@ end
 -- Add menu item.
 function WhatToDo:OnInterfaceMenuListHasLoaded()
 	Event_FireGenericEvent("InterfaceMenuList_NewAddOn", "WhatToDo", { "WhatToDoMenuClicked", "", "Icon_Windows32_UI_CRB_InterfaceMenu_SupportTicket" })
+end
+
+-- Register UI for saving positions.
+function WhatToDo:OnWindowManagementReady()
+	Event_FireGenericEvent("WindowManagementAdd", { wnd = self.wndMain, strName = "WhatToDoTracker" })
 end
 
 -- Add the quest to the dailies finished list.
@@ -442,7 +507,7 @@ end
 
 -- Redraws the tree.
 function WhatToDo:RedrawTree()
-	if not self.wndMain then return end
+	if not self.wndMain:IsVisible() then return end
 
 	local container = self.wndMain:FindChild("QuestWidgetContainer")
 	container:DestroyChildren()
@@ -456,73 +521,7 @@ end
 
 -- on SlashCommand "/wtd"
 function WhatToDo:OnWhatToDoToggle()
-	if self.wndMain then
-		self.wndMain:Close()
-		self.wndMain = nil
-		return
-	end
-
-	local tWndDefinition = {
-		Name			= "WhatToDoWindow",
-		Template		= "CRB_TooltipSimple",
-		UseTemplateBG	= true,
-		Picture			= false,
-		Moveable		= true,
-		Border			= true,
-		AnchorCenter	= {450, 460},
-		Escapable		= true,
-
-		Pixies = {
-			{
-				Line			= true,
-				AnchorPoints	= "HFILL", -- will be translated to {0,0,1,0},
-				AnchorOffsets	= {0,30,0,30},
-				Color			= "white",
-			},
-			{
-				Text			= "What To Do - Daily Tracker",
-				Font			= "CRB_HeaderHuge",
-				TextColor		= "xkcdYellow",
-				AnchorPoints	= "HFILL",
-				DT_CENTER		= true,
-				DT_VCENTER		= true,
-				AnchorOffsets	= {0,0,0,20},
-			},
-		},
-
-		Children = {
-			{
-				WidgetType		= "PushButton",
-				AnchorPoints	= "TOPRIGHT", -- will be translated to { 1, 0, 1, 0 }
-				AnchorOffsets	= { -17, -3, 3, 17 },
-				Base			= "CRB_Basekit:kitBtn_Holo_Close",
-				NoClip			= true,
-				Events			= { ButtonSignal = function(_, wndHandler, wndControl) wndControl:GetParent():Close() end, },
-			},
-			{
-				WidgetType		= "PushButton",
-				AnchorPoints	= "TOPRIGHT", -- will be translated to { 1, 0, 1, 0 }
-				AnchorOffsets	= { -17, 17, 3, 37 },
-				Base			= "CRB_Basekit:kitBtn_Metal_Options",
-				NoClip			= true,
-				Events			= { ButtonSignal = function(_, wndHandler, wndControl) self:OnWhatToDoConfig() end, },
-			},
-			{ 
-				Name			= "QuestWidgetContainer", 
-				AnchorPoints	= "FILL", -- will be translated to { 0, 0, 1, 1 }
-				AnchorOffsets	= {0,40,0,0},
-				NoSelection		= true,
-			}
-		},
-
-		Events = {
-			WindowClosed = function(self, wndHandler, wndControl)
-				self.wndMain = nil
-			end
-		}
-	}
-
-	self.wndMain = GeminiGUI:Create(tWndDefinition):GetInstance(self)
+	self.wndMain:Show(not self.wndMain:IsVisible())
 	self:RedrawTree()
 end
 
