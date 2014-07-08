@@ -1069,11 +1069,13 @@ WTD.QuestPathExtensions = {
 	[7468] = Soldier,	[7464] = Soldier,	-- "HOLDOUT: Stop the Scouts"
 	[7466] = Scientist,	[7462] = Scientist,	-- "ANALYSIS: Malicious Mutagen"
 	[7469] = Explorer,	[7465] = Explorer,	-- "OPERATIONS: Covert Monitoring"
+	[7467] = Settler,	[7463] = Settler,	-- "Guarding the Front"
 
 	-- Northern Wastes
 	[7102] = Soldier,	[7095] = Soldier,	-- "HOLDOUT: Stolen Supplies"
 	[7105] = Explorer,	[7104] = Explorer,	-- "OPERATIONS: Maintaining Communications"
 	[7092] = Scientist,	[7086] = Scientist,	-- "ANALYSIS: Crystal Healing"
+	[7094] = Settler,	[7093] = Settler,	-- "Stocking Up"
 }
 
 -- This text is prepended to the beginning of a non-zone quest.
@@ -2013,6 +2015,5 @@ WTD.QuestNoRepExtensions = {
 	-- Northern Wastes
 	[7070] = "MISSION: Northern Wastes", [7071] = "MISSION: Northern Wastes",	-- "Icy Enlightenment"
 	[7068] = "MISSION: Northern Wastes", [7069] = "MISSION: Northern Wastes",	-- "Frozen Dinners"
-	[7094] = "MISSION: Northern Wastes", [7093] = "MISSION: Northern Wastes",	-- "Stocking Up"
 }
 
