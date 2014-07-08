@@ -1,9 +1,7 @@
 --[[
 	TODO: UI for 'finishing' quests.
-	TODO: Gather more quests data.
 	TODO: Small tracker.
 	TODO: Node coloring.
-	TODO: Tradeskill monitoring
 	TODO: Minimum Level option and levelup.
 	TODO: Investigate Quest:GetPathQuestType()
 ]]
