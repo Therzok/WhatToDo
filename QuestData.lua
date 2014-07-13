@@ -82,6 +82,11 @@ local function InitData()
 			{ IdD = 7077, IdE = 7078, Name = "Eldan Eradication" },
 			{ IdD = 7072, IdE = 7074, Name = "A New God" },
 		},
+		["Guardians of the Grove"] = {
+			{ IdD = 9229, IdE = 9229, Name = "Scorched Wings [GROUP 20+]" },
+			{ IdD = 9476, IdE = 9476, Name = "Mad Heart [GROUP 5+]" },
+			{ IdD = 9200, IdE = 9200, Name = "Guardians of the Grove [GROUP 20+]" },
+		},
 		["Tradeskills - Daily Data Ration"] = {
 			{ IdD = 9610, IdE = 9611, Name = "Torine Tools" },
 			{ IdD = 9604, IdE = 9605, Name = "Pellskinner Blues" },
@@ -439,6 +444,11 @@ local function InitData()
 		[7075] = true, [7076] = true,	-- "They'll thank You Later"
 		[7077] = true, [7078] = true,	-- "Eldan Eradication"
 		[7072] = true, [7074] = true,	-- "A New God"
+
+		-- Blighthaven
+		[9229] = true,					-- "Scorched Wings [GROUP 20+]"
+		[9476] = true,					-- "Mad Heart [GROUP 5+]"
+		[9200] = true,					-- "Guardians of the Grove [GROUP 20+]"
 
 		-- Tradeskills - Data Ration
 		[9610] = true, [9611] = true,	-- "Torine Tools"
@@ -2015,6 +2025,15 @@ local function InitData()
 		-- Northern Wastes
 		[7070] = "MISSION: Northern Wastes", [7071] = "MISSION: Northern Wastes",	-- "Icy Enlightenment"
 		[7068] = "MISSION: Northern Wastes", [7069] = "MISSION: Northern Wastes",	-- "Frozen Dinners"
+	}
+
+	-- This is used to force category for quests.
+	-- Key = ID, Value = Faction name.
+	WTD.QuestZoneOverrideExtensions = {
+		-- Blighthaven
+		[9229] = "Guardians of the Grove",		-- "Scorched Wings [GROUP 20+]"
+		[9476] = "Guardians of the Grove",		-- "Mad Heart [GROUP 5+]"
+		[9200] = "Guardians of the Grove",		-- "Guardians of the Grove [GROUP 20+]"
 	}
 end
 

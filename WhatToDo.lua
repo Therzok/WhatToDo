@@ -72,6 +72,7 @@ local tWndDefinition = {
 	Border			= true,
 	AnchorCenter	= {450, 460},
 	Escapable		= true,
+	Sizable			= true,
 
 	Pixies = {
 		{
@@ -290,6 +291,16 @@ function WhatToDo:DigQuests()
 					end
 				end
 			end
+		else
+			for _, epiEpisode in pairs(qcCategory:GetEpisodes()) do
+				if not epiEpisode:IsWorldStory() and not epiEpisode:IsZoneStory() and not epiEpisode:IsRegionalStory() then
+					for _, queQuest in pairs(epiEpisode:GetAllQuests(qcCategory:GetId())) do
+						if self.QuestWhitelist[queQuest:GetId()] then
+							storeRelevant(self, queQuest)
+						end
+					end
+				end
+			end
 		end
 	end
 
@@ -453,8 +464,9 @@ function WhatToDo:GetDisplayTable()
 				(self.cfg.options.cShowFinished or not self.cfg.finished[quest.Id]) and	-- Purge Finished
 				(not self.cfg.options.cShowWhitelistOnly or quest.Whitelisted)			-- Show only whitelisted.
 			then
-				if not toDisplay[category] then toDisplay[category] = {} end
-				table.insert(toDisplay[category], quest)
+				local displayCategory = self.QuestZoneOverrideExtensions[quest.Id] or category
+				if not toDisplay[displayCategory] then toDisplay[displayCategory] = {} end
+				table.insert(toDisplay[displayCategory], quest)
 			end
 		end
 	end
