@@ -542,6 +542,8 @@ function WhatToDo:CreateTree()
 				if not items then
 					wndControl:AddNode(0, "You've already done everything today. Congratulations.")
 				end
+
+				wndControl:GetParent():FindChild("QuestBlacklistButton"):Show(false)
 			end,
 			TreeDoubleClick = function(self, wndHandler, wndControl, hNode)
 				local data = wndControl:GetNodeData(hNode)
@@ -556,7 +558,7 @@ function WhatToDo:CreateTree()
 				local button = wndControl:GetParent():FindChild("QuestBlacklistButton")
 				local isQuest = data.type == NodeType.Quest
 
-				button:Enable(isQuest)
+				button:Show(isQuest)
 				button:SetText((isQuest and self.cfg.blacklist[data.id]) and "Whitelist" or "Blacklist")
 			end
 		}
