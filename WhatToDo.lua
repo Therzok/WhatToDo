@@ -17,6 +17,12 @@ require "table"
 
 local Debug
 
+-- Node types.
+local NodeType = {
+	Category = 1,
+	Quest = 2,
+}
+
 -- Quest categories.
 local QuestDaily = 63
 local QuestTradeskill = 53
@@ -37,6 +43,7 @@ local defaultOptions = {
 	cShowMaxRep			= true,
 	cShowIds			= false,
 	cShowFinished		= false,
+	cShowBlacklist		= false,
 	cShowWhitelistOnly	= false,-- TODO: Need more quests.
 	cShowForYourLevel	= true	-- TODO
 }
@@ -59,6 +66,7 @@ local optionsConfig = {
 		maxrep = createToggle("cShowMaxRep", "Show Max Reputation", "Shows quests which no longer can award Reputation."),
 		showids = createToggle("cShowIds", "Show IDs", "Shows the IDs in the quest list."),
 		showfinished = createToggle("cShowFinished", "Finished Quests", "Shows quests which have been finished."),
+		showblacklist = createToggle("cShowBlacklist", "Blacklisted Quests", "Shows quests which have been blacklisted."),
 	},
 }
 
@@ -88,7 +96,7 @@ local tWndDefinition = {
 			AnchorPoints	= "HFILL",
 			DT_CENTER		= true,
 			DT_VCENTER		= true,
-			AnchorOffsets	= {0,0,0,20},
+			AnchorOffsets	= { 0, 0, 0, 20},
 		},
 	},
 
@@ -99,7 +107,7 @@ local tWndDefinition = {
 			AnchorOffsets	= { -17, -3, 3, 17 },
 			Base			= "CRB_Basekit:kitBtn_Holo_Close",
 			NoClip			= true,
-			Events			= { ButtonSignal = function(_, wndHandler, wndControl) wndControl:GetParent():Close() end, },
+			Events			= { ButtonSignal = function(_, _, wndControl) wndControl:GetParent():Close() end, },
 		},
 		{
 			WidgetType		= "PushButton",
@@ -107,13 +115,36 @@ local tWndDefinition = {
 			AnchorOffsets	= { -17, 17, 3, 37 },
 			Base			= "CRB_Basekit:kitBtn_Metal_Options",
 			NoClip			= true,
-			Events			= { ButtonSignal = function(_, wndHandler, wndControl) WhatToDo:OnWhatToDoConfig() end, },
+			Events			= { ButtonSignal = function(self, _, _) self:OnWhatToDoConfig() end, },
 		},
 		{ 
 			Name			= "QuestWidgetContainer", 
 			AnchorPoints	= "FILL", -- will be translated to { 0, 0, 1, 1 }
-			AnchorOffsets	= {0,40,0,0},
+			AnchorOffsets	= {0, 40, 0, 0},
 			NoSelection		= true,
+
+			Children = {
+				{
+					Name			= "QuestBlacklistButton",
+					WidgetType		= "PushButton",
+					Text			= "Blacklist",
+					AnchorPoints	= { 0, 0.95, 0.5, 1 },
+					NoClip			= true,
+					Events			= {
+						ButtonSignal = function(self, _, wndControl)
+							local tree = wndControl:GetParent():FindChild("QuestTree")
+							local data = tree:GetNodeData(tree:GetSelectedNode())
+							local id = data.id
+							local isQuest = data.type == NodeType.Quest
+							if not isQuest then return end
+
+							self.cfg.blacklist[id] = not self.cfg.blacklist[id]
+							wndControl:SetText((isQuest and self.cfg.blacklist[id]) and "Whitelist" or "Blacklist")
+							self:RedrawTree()
+						end,
+					},
+				},
+			},
 		},
 	},
 }
@@ -341,16 +372,15 @@ function WhatToDo:OnInitialize()
 	Apollo.RegisterSlashCommand("wtdc", "OnWhatToDoConfig", self)
 
 	-- Set initial values.
-	self.cfg = { finished = {}, options = defaultOptions, ver = ConfigVersion }
+	self.cfg = { finished = {}, options = defaultOptions, ver = ConfigVersion, blacklist = {} }
 	self.dailiesKnown = {}
 
 	-- Register configuration,
 	GeminiConfig:RegisterOptionsTable("WhatToDo", optionsConfig)
-	GeminiConfigDialog:SetDefaultSize("WhatToDo", 295, 300)
+	GeminiConfigDialog:SetDefaultSize("WhatToDo", 295, 400)
 
 	-- Create UI.
 	self.wndMain = GeminiGUI:Create(tWndDefinition):GetInstance(self)
-	self.wndMain:Show(false)
 end
 
 function WhatToDo:OnSave(eLevel)
@@ -368,6 +398,9 @@ function WhatToDo:OnRestore(eLevel, tData)
 
 	-- Check if finished exists.
 	self.cfg.finished = self.cfg.finished or {}
+
+	-- Check if blacklist exists.
+	self.cfg.blacklist = self.cfg.blacklist or {}
 
 	-- Test if we're over a daily cycle since last login.
 	if self.cfg.last ~= lastReset() then
@@ -462,7 +495,8 @@ function WhatToDo:GetDisplayTable()
 				(self.cfg.options.cShowMaxRep or not repIsMax(category)) and			-- Show Max Reputation based on toggle.
 				(not quest.Tradeskill or playerTradeskills[quest.Tradeskill]) and		-- Purge Tradeskills
 				(self.cfg.options.cShowFinished or not self.cfg.finished[quest.Id]) and	-- Purge Finished
-				(not self.cfg.options.cShowWhitelistOnly or quest.Whitelisted)			-- Show only whitelisted.
+				(not self.cfg.options.cShowWhitelistOnly or quest.Whitelisted) and		-- Show only whitelisted.
+				(self.cfg.options.cShowBlacklist or not self.cfg.blacklist[quest.Id])
 			then
 				local displayCategory = self.QuestZoneOverrideExtensions[quest.Id] or category
 				if not toDisplay[displayCategory] then toDisplay[displayCategory] = {} end
@@ -476,6 +510,7 @@ end
 local function formatTitle(self, iId, strTitle, extra)
 	return (not extra.GameData and "[Undiscovered] " or "") ..	-- Undiscovered quest in QuestsKnown.
 		(self.cfg.finished[iId] and "[Finished] " or "") ..		-- Finished quests.
+		(self.cfg.blacklist[iId] and "[Blacklisted] " or "") ..	-- Blacklisted quests.
 		(not self.QuestWhitelist[iId] and "[NEW] " or "") ..	-- GameData quest not in QuestsKnown.
 		(self.QuestZoneExtensions[iId] or "") ..				-- Zone extensions for Tradeskills.
 		strTitle ..												-- Quest title.
@@ -487,7 +522,7 @@ function WhatToDo:CreateTree()
 	return { -- Tree Control
 		Name			= "QuestTree",
 		WidgetType		= "TreeControl",
-		AnchorPoints	= "FILL", -- will be translated to { 0, 0, 1, 1 }
+		AnchorPoints	= { 0, 0, 1, 0.95 },
 		VScroll			= true,
 		Events			= {
 			WindowLoad = function(self, wndHandler, wndControl)
@@ -498,9 +533,9 @@ function WhatToDo:CreateTree()
 					items = true
 
 					local hParent = 0
-					hParent = wndControl:AddNode(hParent, k)
+					hParent = wndControl:AddNode(hParent, k, nil, { type = NodeType.Category })
 					for k2, v2 in pairs(v) do
-						wndControl:AddNode(hParent, formatTitle(self, v2.Id, v2.Name, v2.Extra), nil, v2.Extra.Quest)
+						wndControl:AddNode(hParent, formatTitle(self, v2.Id, v2.Name, v2.Extra), nil, { quest = v2.Extra.Quest, type = NodeType.Quest, id = v2.Id })
 					end
 				end
 				if not items then
@@ -508,11 +543,20 @@ function WhatToDo:CreateTree()
 				end
 			end,
 			TreeDoubleClick = function(self, wndHandler, wndControl, hNode)
-				local quest = wndControl:GetNodeData(hNode)
+				local data = wndControl:GetNodeData(hNode)
+				local quest = data.quest
 				if not quest then return end
 
 				Event_FireGenericEvent("ShowQuestLog", "WhatToDo")
 				Event_FireGenericEvent("GenericEvent_ShowQuestLog", quest)
+			end,
+			TreeSelectionChanged = function(self, wndHandler, wndControl, hSelected, hPrevSelected)
+				local data = wndControl:GetNodeData(hSelected)
+				local button = wndControl:GetParent():FindChild("QuestBlacklistButton")
+				local isQuest = data.type == NodeType.Quest
+
+				button:Enable(isQuest)
+				button:SetText((isQuest and self.cfg.blacklist[data.id]) and "Whitelist" or "Blacklist")
 			end
 		}
 	}
@@ -523,7 +567,8 @@ function WhatToDo:RedrawTree()
 	if not self.wndMain:IsVisible() then return end
 
 	local container = self.wndMain:FindChild("QuestWidgetContainer")
-	container:DestroyChildren()
+	local oldTree = container:FindChild("QuestTree")
+	if oldTree then oldTree:Destroy() end
 	GeminiGUI:Create(self:CreateTree()):GetInstance(self, container)
 end
 
@@ -532,7 +577,7 @@ function WhatToDo:OnWhatToDoFinish(strCmd, strArg)
 	self:FinishQuest(tonumber(strArg))
 end
 
--- on SlashCommand "/wtd"
+-- On SlashCommand "/wtd"
 function WhatToDo:OnWhatToDoToggle()
 	self.wndMain:Show(not self.wndMain:IsVisible())
 	self:RedrawTree()
