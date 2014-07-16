@@ -381,6 +381,7 @@ function WhatToDo:OnInitialize()
 
 	-- Create UI.
 	self.wndMain = GeminiGUI:Create(tWndDefinition):GetInstance(self)
+	self.wndMain:SetSizingMinimum(300, 200)
 end
 
 function WhatToDo:OnSave(eLevel)
