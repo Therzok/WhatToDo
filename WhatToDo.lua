@@ -128,7 +128,7 @@ local tWndDefinition = {
 					Name			= "QuestBlacklistButton",
 					WidgetType		= "PushButton",
 					Text			= "Blacklist",
-					AnchorPoints	= { 0, 0.95, 0.5, 1 },
+					AnchorPoints	= { 0, 1, 0.5, 1.05 },
 					NoClip			= true,
 					Events			= {
 						ButtonSignal = function(self, _, wndControl)
@@ -523,7 +523,7 @@ function WhatToDo:CreateTree()
 	return { -- Tree Control
 		Name			= "QuestTree",
 		WidgetType		= "TreeControl",
-		AnchorPoints	= { 0, 0, 1, 0.95 },
+		AnchorPoints	= { 0, 0, 1, 1 },
 		VScroll			= true,
 		Events			= {
 			WindowLoad = function(self, wndHandler, wndControl)
