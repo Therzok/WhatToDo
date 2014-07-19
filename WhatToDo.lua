@@ -144,6 +144,25 @@ local tWndDefinition = {
 						end,
 					},
 				},
+				{
+					Name			= "QuestFinishButton",
+					WidgetType		= "PushButton",
+					Text			= "Finish",
+					AnchorPoints	= { 0.5, 1, 1, 1.05 },
+					NoClip			= true,
+					Events			= {
+						ButtonSignal = function(self, _, wndControl)
+							local tree = wndControl:GetParent():FindChild("QuestTree")
+							local data = tree:GetNodeData(tree:GetSelectedNode())
+							local id = data.id
+							local isQuest = data.type == NodeType.Quest
+							if not isQuest then return end
+
+							self:FinishQuest(id)
+							self:RedrawTree()
+						end,
+					},
+				}
 			},
 		},
 	},
@@ -560,6 +579,9 @@ function WhatToDo:CreateTree()
 
 				button:Show(isQuest)
 				button:SetText((isQuest and self.cfg.blacklist[data.id]) and "Whitelist" or "Blacklist")
+
+				button = wndControl:GetParent():FindChild("QuestFinishButton")
+				button:Show(isQuest and not self.cfg.finished[data.id])
 			end
 		}
 	}
